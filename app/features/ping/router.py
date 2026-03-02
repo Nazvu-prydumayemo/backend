@@ -26,5 +26,5 @@ async def status() -> StatusResponse:
     summary="Health Check",
     description="Returns a 'pong' string to verify the server is alive and reachable.",
 )
-async def ping():
+async def ping() -> str:
     return "pong"
