@@ -32,7 +32,7 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-def do_run_migrations(connection):
+def do_run_migrations(connection) -> None:
     """This helper function actually performs the migration sync-style."""
     context.configure(connection=connection, target_metadata=target_metadata)
     with context.begin_transaction():
