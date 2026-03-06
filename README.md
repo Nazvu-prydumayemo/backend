@@ -57,21 +57,32 @@ Create a `.env` file:
 
 ## 5. Run database migrations
 
+
+### Make a migration
+```bash
+alembic revision --autogenerate -m "create users"
+```
+Or:
+
+```bash
+make migrate msg="create users table"
+```
+
+### Apply a migration
 ```bash
 alembic upgrade head
 ```
-
 Or:
-
 ```bash
 make upgrade
 ```
 
-Create a new migration:
+### Rollback last migration:
 
 ```bash
-make migrate
+make downgrade
 ```
+
 
 ---
 

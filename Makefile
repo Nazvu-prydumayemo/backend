@@ -7,17 +7,17 @@
 
 help:
 	@echo "Available commands:"
-	@echo "  make install     - Install dependencies + pre-commit"
-	@echo "  make dev         - Run development server"
-	@echo "  make prod        - Run production server"
-	@echo "  make lint        - Run ruff linter"
-	@echo "  make format      - Run ruff formatter"
-	@echo "  make type        - Run mypy type checking"
-	@echo "  make test        - Run pytest"
-	@echo "  make migrate     - Create new migration"
-	@echo "  make upgrade     - Apply migrations"
-	@echo "  make downgrade   - Rollback last migration"
-	@echo "  make clean       - Remove cache files"
+	@echo "  make install                 - Install dependencies + pre-commit"
+	@echo "  make dev                     - Run development server"
+	@echo "  make prod                    - Run production server"
+	@echo "  make lint                    - Run ruff linter"
+	@echo "  make format                  - Run ruff formatter"
+	@echo "  make type                    - Run mypy type checking"
+	@echo "  make test                    - Run pytest"
+	@echo "  make migrate msg='message'   - Create new migration"
+	@echo "  make upgrade                 - Apply migrations"
+	@echo "  make downgrade               - Rollback last migration"
+	@echo "  make clean                   - Remove cache files"
 
 # -------------------------
 # Setup
@@ -62,7 +62,10 @@ test:
 # -------------------------
 
 migrate:
-	alembic revision --autogenerate -m "migration"
+ifndef msg
+	$(error Usage: make migrate msg="your migration message")
+endif
+	alembic revision --autogenerate -m "$(msg)"
 
 upgrade:
 	alembic upgrade head
