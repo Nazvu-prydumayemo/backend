@@ -6,4 +6,4 @@ class Base(DeclarativeBase):
 
 
 # Import your models here so Alembic can find them:
-# from app.models.user import User
+from app.features.user.models import User  # noqa: E402, F401

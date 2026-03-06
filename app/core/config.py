@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     app_name: str = "NP-backend"
     environment: str = "dev"
 
-    DATABASE_URL: str
+    DATABASE_URL: str = ""
 
     model_config = SettingsConfigDict(env_file=".env")
 
