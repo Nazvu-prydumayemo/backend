@@ -16,17 +16,15 @@ class UserRole(Base):
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True, init=False)
 
     firstname: Mapped[str] = mapped_column(String(50))
     lastname: Mapped[str] = mapped_column(String(50))
-
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-
     password: Mapped[str] = mapped_column(String(255))
-
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     role_id: Mapped[int] = mapped_column(ForeignKey("user_roles.id"))
 
-    role: Mapped["UserRole"] = relationship(back_populates="users")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    role: Mapped["UserRole"] = relationship(back_populates="users", init=False)

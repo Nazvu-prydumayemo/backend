@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context  # type: ignore[attr-defined]
 from app.core.config import settings
+from app.db.base_all import Base  # noqa: F401  ← change this line
 from app.db.base import Base
 
 config = context.config
