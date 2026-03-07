@@ -11,7 +11,7 @@ from .models import User
 from .schemas import UserCreate
 
 
-async def get_users(db: AsyncSession) -> Sequence:
+async def get_users(db: AsyncSession) -> Sequence[User]:
     result = await db.execute(select(User).options(selectinload(User.role)))
     return result.scalars().all()
 
