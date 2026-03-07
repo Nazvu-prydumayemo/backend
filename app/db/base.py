@@ -1,9 +1,5 @@
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, MappedAsDataclass
 
 
-class Base(DeclarativeBase):
+class Base(DeclarativeBase, MappedAsDataclass):
     pass
-
-
-# Import your models here so Alembic can find them:
-# from app.models.user import User

@@ -42,6 +42,8 @@ line-length = 100
 target-version = "py311"
 fix = true
 
+exclude = ["alembic"]
+
 [tool.ruff.lint]
 select = [
     "E",
@@ -78,7 +80,8 @@ check_untyped_defs = false    # don’t check inside untyped functions
 warn_unused_ignores = false   # don’t warn about # type: ignore
 no_implicit_optional = false  # allow Optional without explicit annotation
 
-exclude = ["tests/"]
+exclude = ["tests/", "alembic"]
+
 
 # ----------------------
 # PYTEST CONFIGURATION
