@@ -1,6 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -8,7 +9,13 @@ from app.features.user.models import User
 from app.features.user.schemas import UserRead
 
 from .dependencies import get_current_active_user
-from .schemas import LoginRequest, RefreshTokenRequest, RegisterRequest, Token
+from .openapi import LOGIN_OPENAPI_EXTRA
+from .schemas import (
+    LoginRequest,
+    RefreshTokenRequest,
+    RegisterRequest,
+    Token,
+)
 from .service import login_user, refresh_access_token, register_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -26,13 +33,43 @@ async def register(
     return await register_user(db, register_data)
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token, openapi_extra=LOGIN_OPENAPI_EXTRA)
 async def login(
-    login_data: LoginRequest,
+    request: Request,
     db: DbSessionDep,
 ):
     """Login endpoint that returns access and refresh tokens"""
-    return await login_user(db, login_data.email, login_data.password)
+    content_type = request.headers.get("content-type", "")
+
+    if "application/json" in content_type:
+        try:
+            raw_json = await request.json()
+            login_data = LoginRequest.model_validate(raw_json)
+        except (ValueError, ValidationError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Invalid JSON login payload",
+            ) from exc
+        return await login_user(db, login_data.email, login_data.password)
+
+    # for Swagger
+    if "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+        form_data = await request.form()
+        username = form_data.get("username")
+        password = form_data.get("password")
+
+        if not isinstance(username, str) or not isinstance(password, str):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Form login requires username and password",
+            )
+
+        return await login_user(db, username, password)
+
+    raise HTTPException(
+        status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        detail="Unsupported Content-Type for login",
+    )
 
 
 @router.post("/refresh", response_model=Token)
