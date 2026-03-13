@@ -36,10 +36,10 @@ async def login_user(db: AsyncSession, email: str, password: str) -> Token:
     # Create tokens
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.id, "email": user.email},
+        data={"sub": str(user.id), "email": user.email},
         expires_delta=access_token_expires,
     )
-    refresh_token = create_refresh_token(data={"sub": user.id, "email": user.email})
+    refresh_token = create_refresh_token(data={"sub": str(user.id), "email": user.email})
 
     return Token(
         access_token=access_token,

@@ -44,7 +44,7 @@ async def get_current_user(
     if user_id is None:
         raise credentials_exception
 
-    user = await get_user_by_id(db, user_id=user_id)
+    user = await get_user_by_id(db, user_id=int(user_id))
     if user is None:
         raise credentials_exception
 
