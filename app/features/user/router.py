@@ -4,16 +4,17 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.features.auth.dependencies import admin_guard, staff_guard
+from app.core.security import verify_password
+from app.features.auth.dependencies import admin_guard, get_current_active_user, staff_guard
 
 from .models import User
-from .schemas import UserRead
-from .service import get_user_by_id, get_users
+from .schemas import DeleteAccountRequest, UserRead
+from .service import delete_user_by_id, get_user_by_id, get_users
 
-router = APIRouter(prefix="/users", tags=["users"])
+users_router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.get("/", response_model=list[UserRead])
+@users_router.get("/", response_model=list[UserRead])
 async def list_all_users(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(staff_guard)],
@@ -21,7 +22,7 @@ async def list_all_users(
     return await get_users(db)
 
 
-@router.get("/{user_id}", response_model=UserRead)
+@users_router.get("/{user_id}", response_model=UserRead)
 async def get_user(
     user_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -31,3 +32,25 @@ async def get_user(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return user
+
+
+account_router = APIRouter(prefix="/account", tags=["account"])
+
+
+@account_router.post("/delete")
+async def delete_account(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    delete_request: DeleteAccountRequest,
+):
+    """Delete the current user's account after password verification."""
+    password_valid = await verify_password(delete_request.password, current_user.password)
+    if not password_valid:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Could not verify identity. Account deletion aborted.",
+        )
+
+    await delete_user_by_id(db, current_user.id)
+
+    return {"message": "Account deleted successfully"}

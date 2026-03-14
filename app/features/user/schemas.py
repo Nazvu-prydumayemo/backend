@@ -36,3 +36,7 @@ class UserRead(UserBase):
 
     class Config:
         from_attributes = True
+
+
+class DeleteAccountRequest(BaseModel):
+    password: str
