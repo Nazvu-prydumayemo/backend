@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel, EmailStr
 
 
@@ -26,3 +28,9 @@ class RegisterRequest(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
+
+class ErrorResponse(BaseModel):
+    code: str
+    detail: str
+    errors: list[dict[str, Any]] | None = None
