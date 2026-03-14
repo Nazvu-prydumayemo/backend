@@ -37,6 +37,14 @@ async def get_user(
 account_router = APIRouter(prefix="/account", tags=["account"])
 
 
+@account_router.get("/me", response_model=UserRead)
+async def get_account_info(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+):
+    """Get the current authenticated user's account information"""
+    return current_user
+
+
 @account_router.post("/delete")
 async def delete_account(
     db: Annotated[AsyncSession, Depends(get_db)],
