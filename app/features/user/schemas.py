@@ -40,3 +40,8 @@ class UserRead(UserBase):
 
 class DeleteAccountRequest(BaseModel):
     password: str
+
+
+class UserProfileUpdate(BaseModel):
+    firstname: str | None = None
+    lastname: str | None = None

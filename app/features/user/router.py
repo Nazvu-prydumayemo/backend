@@ -8,8 +8,8 @@ from app.core.security import verify_password
 from app.features.auth.dependencies import admin_guard, get_current_active_user, staff_guard
 
 from .models import User
-from .schemas import DeleteAccountRequest, UserRead
-from .service import delete_user_by_id, get_user_by_id, get_users
+from .schemas import DeleteAccountRequest, UserProfileUpdate, UserRead
+from .service import delete_user_by_id, get_user_by_id, get_users, update_user_profile
 
 users_router = APIRouter(prefix="/users", tags=["users"])
 
@@ -43,6 +43,22 @@ async def get_account_info(
 ):
     """Get the current authenticated user's account information"""
     return current_user
+
+
+@account_router.patch("/profile", response_model=UserRead)
+async def update_profile(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    profile_update: UserProfileUpdate,
+):
+    """Update the current user's profile (firstname and lastname only)."""
+    updated_user = await update_user_profile(
+        db,
+        current_user,
+        firstname=profile_update.firstname,
+        lastname=profile_update.lastname,
+    )
+    return updated_user
 
 
 @account_router.post("/delete")

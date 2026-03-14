@@ -60,3 +60,19 @@ async def delete_user_by_id(db: AsyncSession, user_id: int) -> User | None:
     await db.commit()
 
     return user
+
+
+async def update_user_profile(
+    db: AsyncSession, user: User, firstname: str | None = None, lastname: str | None = None
+) -> User:
+    """Update user's firstname and lastname."""
+    if firstname is not None:
+        user.firstname = firstname
+    if lastname is not None:
+        user.lastname = lastname
+
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    return user
