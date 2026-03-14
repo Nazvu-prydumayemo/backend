@@ -8,8 +8,14 @@ from app.core.security import verify_password
 from app.features.auth.dependencies import admin_guard, get_current_active_user, staff_guard
 
 from .models import User
-from .schemas import DeleteAccountRequest, UserProfileUpdate, UserRead
-from .service import delete_user_by_id, get_user_by_id, get_users, update_user_profile
+from .schemas import ChangePasswordRequest, DeleteAccountRequest, UserProfileUpdate, UserRead
+from .service import (
+    change_user_password,
+    delete_user_by_id,
+    get_user_by_id,
+    get_users,
+    update_user_profile,
+)
 
 users_router = APIRouter(prefix="/users", tags=["users"])
 
@@ -57,6 +63,22 @@ async def update_profile(
         current_user,
         firstname=profile_update.firstname,
         lastname=profile_update.lastname,
+    )
+    return updated_user
+
+
+@account_router.post("/change-password", response_model=UserRead)
+async def change_password(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    password_change: ChangePasswordRequest,
+):
+    """Change the current user's password after verifying the current password."""
+    updated_user = await change_user_password(
+        db,
+        current_user,
+        current_password=password_change.current_password,
+        new_password=password_change.new_password,
     )
     return updated_user
 

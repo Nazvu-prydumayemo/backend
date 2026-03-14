@@ -45,3 +45,8 @@ class DeleteAccountRequest(BaseModel):
 class UserProfileUpdate(BaseModel):
     firstname: str | None = None
     lastname: str | None = None
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
