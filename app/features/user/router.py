@@ -51,13 +51,27 @@ async def get_account_info(
     return current_user
 
 
-@account_router.patch("/profile", response_model=UserRead)
+@account_router.patch(
+    "/profile",
+    response_model=UserRead,
+    responses={
+        200: {"description": "Profile updated successfully"},
+        401: {"description": "Unauthorized - Invalid or missing authentication token"},
+        422: {"description": "Validation error - Invalid input data"},
+    },
+)
 async def update_profile(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_active_user)],
     profile_update: UserProfileUpdate,
 ):
-    """Update the current user's profile (firstname and lastname only)."""
+    """Update the current user's profile (firstname and lastname only).
+
+    - **firstname** (optional): User's first name
+    - **lastname** (optional): User's last name
+
+    Returns the updated user profile.
+    """
     updated_user = await update_user_profile(
         db,
         current_user,
@@ -67,13 +81,32 @@ async def update_profile(
     return updated_user
 
 
-@account_router.post("/change-password", response_model=UserRead)
+@account_router.post(
+    "/change-password",
+    response_model=UserRead,
+    responses={
+        200: {"description": "Password changed successfully"},
+        400: {"description": "Bad Request - New password cannot be the same as the old password"},
+        401: {"description": "Unauthorized - Invalid authentication or incorrect current password"},
+        422: {"description": "Validation error - Invalid input data"},
+    },
+)
 async def change_password(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_active_user)],
     password_change: ChangePasswordRequest,
 ):
-    """Change the current user's password after verifying the current password."""
+    """Change the current user's password after verifying the current password.
+
+    - **current_password**: The user's current password for verification
+    - **new_password**: The new password to set
+
+    Errors:
+    - **401**: When the current password is incorrect
+    - **400**: When the new password is the same as the old password
+
+    Returns the updated user profile on success.
+    """
     updated_user = await change_user_password(
         db,
         current_user,
@@ -83,13 +116,33 @@ async def change_password(
     return updated_user
 
 
-@account_router.post("/delete")
+@account_router.post(
+    "/delete",
+    responses={
+        200: {"description": "Account deleted successfully"},
+        401: {"description": "Unauthorized - Invalid or missing authentication token"},
+        403: {"description": "Forbidden - Incorrect password, account deletion aborted"},
+        422: {"description": "Validation error - Invalid input data"},
+    },
+)
 async def delete_account(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_active_user)],
     delete_request: DeleteAccountRequest,
 ):
-    """Delete the current user's account after password verification."""
+    """Delete the current user's account after password verification.
+
+    This endpoint permanently deletes the authenticated user's account.
+    Password verification is required for security.
+
+    - **password**: User's current password for verification
+
+    Errors:
+    - **403**: When the provided password is incorrect
+    - **401**: When authentication token is invalid or missing
+
+    Returns a success message and user ID upon successful deletion.
+    """
     password_valid = await verify_password(delete_request.password, current_user.password)
     if not password_valid:
         raise HTTPException(
