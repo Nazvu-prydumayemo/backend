@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.features.user.models import User
-from app.features.user.schemas import UserRead
 
 from .dependencies import get_current_active_user
 from .schemas import LoginRequest, RefreshTokenRequest, RegisterRequest, Token
@@ -39,11 +38,3 @@ async def login(
 async def refresh_token(refresh_data: RefreshTokenRequest):
     """Refresh the access token using a refresh token"""
     return await refresh_access_token(refresh_data.refresh_token)
-
-
-@router.get("/me", response_model=UserRead)
-async def get_current_user_info(
-    current_user: CurrentUserDep,
-):
-    """Get the current authenticated user's information"""
-    return current_user
