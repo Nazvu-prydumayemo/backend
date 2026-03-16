@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.features.user.models import User
-from app.features.user.schemas import UserRead
 
 from .dependencies import get_current_active_user
 from .openapi import LOGIN_OPENAPI_EXTRA
