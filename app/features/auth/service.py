@@ -29,7 +29,7 @@ async def login_user(db: AsyncSession, email: str, password: str) -> Token:
 
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user",
         )
 
@@ -50,16 +50,24 @@ async def login_user(db: AsyncSession, email: str, password: str) -> Token:
 
 async def register_user(db: AsyncSession, register_data: RegisterRequest) -> Token:
     """Register a user and return access and refresh tokens."""
-    created_user = await create_user(
-        db,
-        UserCreate(
-            firstname=register_data.firstname,
-            lastname=register_data.lastname,
-            email=register_data.email,
-            password=register_data.password,
-            role_id=UserRoleEnum.USER,
-        ),
-    )
+    try:
+        created_user = await create_user(
+            db,
+            UserCreate(
+                firstname=register_data.firstname,
+                lastname=register_data.lastname,
+                email=register_data.email,
+                password=register_data.password,
+                role_id=UserRoleEnum.USER,
+            ),
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not create user",
+        ) from exc
 
     if created_user is None:
         raise HTTPException(
@@ -69,10 +77,12 @@ async def register_user(db: AsyncSession, register_data: RegisterRequest) -> Tok
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": created_user.id, "email": created_user.email},
+        data={"sub": str(created_user.id), "email": created_user.email},
         expires_delta=access_token_expires,
     )
-    refresh_token = create_refresh_token(data={"sub": created_user.id, "email": created_user.email})
+    refresh_token = create_refresh_token(
+        data={"sub": str(created_user.id), "email": created_user.email}
+    )
 
     return Token(
         access_token=access_token,
@@ -110,10 +120,10 @@ async def refresh_access_token(refresh_token: str) -> Token:
     # Create new tokens
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user_id, "email": email},
+        data={"sub": str(user_id), "email": email},
         expires_delta=access_token_expires,
     )
-    new_refresh_token = create_refresh_token(data={"sub": user_id, "email": email})
+    new_refresh_token = create_refresh_token(data={"sub": str(user_id), "email": email})
 
     return Token(
         access_token=access_token,
