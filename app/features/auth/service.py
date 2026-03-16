@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -13,7 +13,6 @@ from app.core.security import (
 from app.features.user.schemas import UserCreate, UserRoleEnum
 from app.features.user.service import create_user, get_user_by_email
 
-from .errors import raise_auth_error
 from .schemas import RegisterRequest, Token
 
 
@@ -22,10 +21,17 @@ async def login_user(db: AsyncSession, email: str, password: str) -> Token:
     user = await get_user_by_email(db, email)
 
     if not user or not await verify_password(password, user.password):
-        raise_auth_error("invalid_credentials")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     if not user.is_active:
-        raise_auth_error("inactive_user")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user",
+        )
 
     # Create tokens
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -55,15 +61,19 @@ async def register_user(db: AsyncSession, register_data: RegisterRequest) -> Tok
                 role_id=UserRoleEnum.USER,
             ),
         )
-    except HTTPException as exc:
-        if exc.status_code == 400 and exc.detail == "Email already registered":
-            raise_auth_error("email_already_registered")
-        raise_auth_error("user_creation_failed")
-    except Exception:
-        raise_auth_error("user_creation_failed")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not create user",
+        ) from exc
 
     if created_user is None:
-        raise_auth_error("user_creation_failed")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not create user",
+        )
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -86,17 +96,26 @@ async def refresh_access_token(refresh_token: str) -> Token:
     payload = decode_token(refresh_token)
 
     if payload is None:
-        raise_auth_error("invalid_refresh_token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
 
     # Check token type
     if payload.get("type") != "refresh":
-        raise_auth_error("invalid_token_type")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token type",
+        )
 
     user_id: int | None = payload.get("sub")
     email: str | None = payload.get("email")
 
     if user_id is None or email is None:
-        raise_auth_error("invalid_refresh_token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
 
     # Create new tokens
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)

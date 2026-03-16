@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,8 +10,6 @@ from app.core.security import decode_token
 from app.features.user.models import User
 from app.features.user.schemas import UserRoleEnum
 from app.features.user.service import get_user_by_id
-
-from .errors import raise_auth_error
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
@@ -26,23 +24,41 @@ async def get_current_user(
     """Dependency to get the current authenticated user"""
     payload = decode_token(token)
     if payload is None:
-        raise_auth_error("credentials_validation_failed")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     # Check token type
     if payload.get("type") != "access":
-        raise_auth_error("invalid_token_type")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token type",
+        )
 
     user_id: str | None = payload.get("sub")
 
     if user_id is None:
-        raise_auth_error("credentials_validation_failed")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     user = await get_user_by_id(db, user_id=int(user_id))
     if user is None:
-        raise_auth_error("credentials_validation_failed")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     if not user.is_active:
-        raise_auth_error("inactive_user")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user",
+        )
 
     return user
 
@@ -52,7 +68,10 @@ async def get_current_active_user(
 ) -> User:
     """Dependency to get the current active user"""
     if not current_user.is_active:
-        raise_auth_error("inactive_user")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user",
+        )
     return current_user
 
 
@@ -67,7 +86,10 @@ def require_roles(*allowed_roles: UserRoleEnum) -> Callable:
     async def _role_guard(current_user: CurrentActiveUserDep) -> User:
         """Validate that the current active user has one of the allowed roles"""
         if current_user.role_id not in allowed_role_ids:
-            raise_auth_error("forbidden_resource")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to access this resource",
+            )
         return current_user
 
     return _role_guard
