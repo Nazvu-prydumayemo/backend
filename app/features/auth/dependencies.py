@@ -48,12 +48,12 @@ async def get_current_user(
 
     try:
         user_id_int = int(user_id)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from exc
 
     user = await get_user_by_id(db, user_id=user_id_int)
     if user is None:
