@@ -40,7 +40,7 @@ async def register(
     register_data: RegisterRequest,
     db: DbSessionDep,
 ):
-    """Register endpoint that creates a user and returns an access and refresh tokens."""
+    """Register endpoint that creates a user and returns access and refresh tokens."""
     return await register_user(db, register_data)
 
 
