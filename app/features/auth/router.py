@@ -30,7 +30,7 @@ CurrentUserDep = Annotated[User, Depends(get_current_active_user)]
     summary="Register New User",
     description=("Creates a new user account and returns an access token plus refresh token."),
     responses={
-        200: {"description": "User created successfully"},
+        201: {"description": "User created successfully"},
         400: {"description": "Email already registered"},
         422: {"description": "Request validation failed"},
         500: {"description": "Could not create user"},
