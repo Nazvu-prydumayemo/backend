@@ -115,21 +115,3 @@ async def login(
 async def refresh_token(refresh_data: RefreshTokenRequest):
     """Refresh the access token using a refresh token"""
     return await refresh_access_token(refresh_data.refresh_token)
-
-
-@router.get(
-    "/me",
-    response_model=UserRead,
-    summary="Get Current User Profile",
-    description="Returns profile data for the authenticated user.",
-    responses={
-        200: {"description": "Profile data returned successfully"},
-        401: {"description": "Access token is missing or invalid"},
-        403: {"description": "Current user is inactive"},
-    },
-)
-async def get_current_user_info(
-    current_user: CurrentUserDep,
-):
-    """Get the current authenticated user's information"""
-    return current_user
