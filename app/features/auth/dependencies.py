@@ -32,7 +32,7 @@ async def get_current_user(
     if payload.get("type") != "access":
         raise_auth_error("invalid_token_type")
 
-    user_id: int | None = payload.get("sub")
+    user_id: str | None = payload.get("sub")
 
     if user_id is None:
         raise_auth_error("credentials_validation_failed")
