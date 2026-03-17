@@ -66,3 +66,4 @@ async def delete_court_by_id(db: AsyncSession, court_id: int) -> Court | None:
     await db.commit()
 
     return court
+

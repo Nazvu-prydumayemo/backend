@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-
+from pydantic import ConfigDict
+from datetime import datetime
 
 class CourtBase(BaseModel):
     """Base schema for Court with common fields used in creation and reading."""
@@ -24,7 +25,6 @@ class CourtUpdate(BaseModel):
 class CourtRead(CourtBase):
     """Schema for reading Court data from the database."""
     id: int
-    created_at: str  # Or use datetime if needed
+    created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True) 
