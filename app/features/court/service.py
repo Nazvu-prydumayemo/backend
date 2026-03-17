@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 
-from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,7 +23,6 @@ async def get_court_by_id(db: AsyncSession, court_id: int) -> Court | None:
 async def create_court(db: AsyncSession, data: CourtCreate) -> Court:
     """Create a new court with the provided data."""
     new_court = Court(
-        number=data.number,
         surface_type=data.surface_type,
         is_indoor=data.is_indoor,
         price_per_hour=data.price_per_hour,
@@ -66,4 +64,3 @@ async def delete_court_by_id(db: AsyncSession, court_id: int) -> Court | None:
     await db.commit()
 
     return court
-

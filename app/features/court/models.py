@@ -11,7 +11,6 @@ class Court(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True, init=False)
 
-    number: Mapped[int] = mapped_column(nullable=False)
 
     surface_type: Mapped[str] = mapped_column(String, nullable=False)
 

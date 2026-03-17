@@ -2,9 +2,9 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from datetime import datetime
 
+
 class CourtBase(BaseModel):
     """Base schema for Court with common fields used in creation and reading."""
-    number: int
     surface_type: str
     is_indoor: bool
     price_per_hour: float
@@ -16,7 +16,6 @@ class CourtCreate(CourtBase):
 
 class CourtUpdate(BaseModel):
     """Schema for updating an existing Court. All fields are optional."""
-    number: int | None = None
     surface_type: str | None = None
     is_indoor: bool | None = None
     price_per_hour: float | None = None

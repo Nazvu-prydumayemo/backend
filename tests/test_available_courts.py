@@ -11,7 +11,6 @@ async def test_get_available_courts():
         assert isinstance(data, list)
         for court in data:
             assert "id" in court
-            assert "number" in court
             assert "surface_type" in court
             assert "is_indoor" in court
             assert "price_per_hour" in court
