@@ -1,9 +1,12 @@
 import asyncio
+import re
 from datetime import UTC, datetime, timedelta
+from typing import Annotated
 
 import jwt
 from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
+from pydantic import AfterValidator
 
 from app.core.config import settings
 
@@ -46,3 +49,13 @@ def decode_token(token: str) -> dict | None:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     except InvalidTokenError:
         return None
+
+
+def validate_password_regex(v: str) -> str:
+    pattern = r"^[A-Za-z0-9@$!%*?&]{8,}$"
+    if not re.match(pattern, v):
+        raise ValueError("Password is too weak, bro. Fix it.")
+    return v
+
+
+StrongPassword = Annotated[str, AfterValidator(validate_password_regex)]
