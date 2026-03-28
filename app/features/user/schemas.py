@@ -2,6 +2,8 @@ import enum
 
 from pydantic import BaseModel, EmailStr
 
+from app.core.security import StrongPassword
+
 
 class UserRoleEnum(enum.IntEnum):
     ADMIN = 1
@@ -16,7 +18,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str
+    password: StrongPassword
     role_id: UserRoleEnum
 
 
@@ -24,7 +26,7 @@ class UserUpdate(BaseModel):
     firstname: str | None = None
     lastname: str | None = None
     email: EmailStr | None = None
-    password: str | None = None
+    password: StrongPassword | None = None
     role_id: UserRoleEnum | None = None
     is_active: bool | None = None
 
@@ -49,4 +51,4 @@ class UserProfileUpdate(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     current_password: str
-    new_password: str
+    new_password: StrongPassword

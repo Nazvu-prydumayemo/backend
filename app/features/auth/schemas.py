@@ -1,5 +1,7 @@
 from pydantic import BaseModel, EmailStr
 
+from app.core.security import StrongPassword
+
 
 class Token(BaseModel):
     access_token: str
@@ -14,14 +16,14 @@ class TokenData(BaseModel):
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: str
+    password: StrongPassword
 
 
 class RegisterRequest(BaseModel):
     firstname: str
     lastname: str
     email: EmailStr
-    password: str
+    password: StrongPassword
 
 
 class RefreshTokenRequest(BaseModel):
