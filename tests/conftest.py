@@ -1,8 +1,13 @@
+import asyncio
+
 import pytest
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.core.config import settings
 from app.db.base import Base
+
+if hasattr(asyncio, "WindowsSelectorEventLoopPolicy"):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 import app.features.court.models  # noqa: F401 — щоб Base.metadata побачила таблицю courts
 
 
