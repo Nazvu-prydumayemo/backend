@@ -16,7 +16,7 @@ class TokenData(BaseModel):
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: StrongPassword
+    password: str
 
 
 class RegisterRequest(BaseModel):
