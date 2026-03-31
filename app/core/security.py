@@ -52,9 +52,11 @@ def decode_token(token: str) -> dict | None:
 
 
 def validate_password_regex(v: str) -> str:
-    pattern = r"^[A-Za-z0-9@$!%*?&]{8,}$"
+    pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
     if not re.match(pattern, v):
-        raise ValueError("Password is too weak, bro. Fix it.")
+        raise ValueError(
+            "Password is too weak. Please ensure it meets all complexity requirements."
+        )
     return v
 
 
