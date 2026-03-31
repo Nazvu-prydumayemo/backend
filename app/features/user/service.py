@@ -11,6 +11,11 @@ from .models import User
 from .schemas import UserCreate
 
 
+def normalize_email(email: str) -> str:
+    """Normalize email values for consistent storage and lookup."""
+    return email.strip().lower()
+
+
 async def get_users(db: AsyncSession) -> Sequence[User]:
     result = await db.execute(select(User).options(selectinload(User.role)))
     return result.scalars().all()
@@ -23,13 +28,15 @@ async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
 
 
 async def get_user_by_email(db: AsyncSession, user_email: str) -> User | None:
-    query = select(User).where(User.email == user_email).options(selectinload(User.role))
+    normalized_email = normalize_email(user_email)
+    query = select(User).where(User.email == normalized_email).options(selectinload(User.role))
     result = await db.execute(query)
     return result.scalar_one_or_none()
 
 
 async def create_user(db: AsyncSession, data: UserCreate) -> User | None:
-    existing_user = await get_user_by_email(db, data.email)
+    normalized_email = normalize_email(data.email)
+    existing_user = await get_user_by_email(db, normalized_email)
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -38,7 +45,7 @@ async def create_user(db: AsyncSession, data: UserCreate) -> User | None:
     new_user = User(
         firstname=data.firstname,
         lastname=data.lastname,
-        email=data.email,
+        email=normalized_email,
         password=hashed_password,
         role_id=data.role_id.value,
     )
