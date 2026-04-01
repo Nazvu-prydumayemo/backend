@@ -43,7 +43,7 @@ jobs:
     needs: build-and-test
     environment:
       name: production
-      url: https://your-domain.com
+      url: https://0pcode.tech
     steps:
       - name: Waiting for approval
         run: echo "Deployment pending approval..."
