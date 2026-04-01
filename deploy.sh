@@ -26,7 +26,7 @@ git pull origin main
 
 echo "Starting Docker services (docker-compose)..."
 docker-compose down --remove-orphans || true
-docker-compose up -d
+docker-compose up -d --build
 
 echo "Waiting for PostgreSQL to be ready..."
 POSTGRES_READY="false"
