@@ -13,7 +13,6 @@ NP_backend.egg-info
 .github
 tests
 Makefile
-README.md
 LICENSE
 *.db
 *.sqlite
