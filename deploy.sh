@@ -51,7 +51,7 @@ docker-compose exec -T backend alembic upgrade head
 echo "Checking backend health..."
 BACKEND_HEALTHY="false"
 for i in {1..30}; do
-    if curl -fsSL https://localhost/api/v1/status/ping > /dev/null 2>&1; then
+    if curl -fsSL https://0pcode.tech/api/v1/status/ping > /dev/null 2>&1; then
         echo "Backend is healthy!"
         BACKEND_HEALTHY="true"
         break
@@ -66,6 +66,6 @@ if [ "$BACKEND_HEALTHY" != "true" ]; then
 fi
 echo ""
 echo "Deployment Complete"
-echo "Backend is running at http://localhost"
+echo "Backend is running at https://0pcode.tech"
 echo "To view logs: docker-compose logs -f"
 echo "To stop: docker-compose down"
