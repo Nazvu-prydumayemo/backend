@@ -41,7 +41,7 @@ docker-compose exec -T backend alembic upgrade head
 
 echo "Checking backend health..."
 for i in {1..30}; do
-    if curl -f http://localhost/api/v1/status/ping > /dev/null 2>&1; then
+    if curl -fsSL https://localhost/api/v1/status/ping > /dev/null 2>&1; then
         echo "Backend is healthy!"
         break
     fi
