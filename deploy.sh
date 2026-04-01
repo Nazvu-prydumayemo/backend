@@ -15,7 +15,9 @@ if [ ! -f .env ]; then
 fi
 
 echo "Loading environment variables..."
-export $(cat .env | grep -v '^#' | xargs)
+set -a
+. ./.env
+set +a
 
 echo "Pulling latest code from Git..."
 git fetch origin
