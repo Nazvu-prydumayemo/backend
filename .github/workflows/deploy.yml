@@ -1,13 +1,16 @@
 name: Build & Deploy (Manual Approval)
 
 on:
-  push:
-    branches: ["main"]
-  workflow_dispatch:
+    workflow_dispatch:
+      inputs:
+        version:
+          description: "Release version (e.g. v1.2.0)"
+          required: true
+          default: "v0.0.1"
 
 jobs:
-  build-and-test:
-    name: Build & Test
+  build:
+    name: Build
     runs-on: ubuntu-latest
 
     steps:
@@ -17,7 +20,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: "3.14"
 
       - name: Install dependencies
         run: |
@@ -28,22 +31,13 @@ jobs:
         run: |
           docker build -t np-backend:latest .
 
-  approval:
-    name: Approval Gate
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    environment:
-      name: production
-      url: https://0pcode.tech
-    steps:
-      - name: Waiting for approval
-        run: echo "Deployment pending approval..."
-
   deploy:
     name: Deploy to VPS
     runs-on: ubuntu-latest
-    needs: approval
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    needs: build
+    environment:
+      name: Production
+      url: https://0pcode.tech
 
     steps:
       - name: Deploy via SSH
