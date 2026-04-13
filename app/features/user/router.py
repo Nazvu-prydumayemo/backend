@@ -40,6 +40,31 @@ async def get_user(
     return user
 
 
+@users_router.delete(
+    "/{user_id}",
+    responses={
+        200: {"description": "User deleted successfully"},
+        401: {"description": "Unauthorized - Invalid or missing authentication token"},
+        403: {"description": "Forbidden - Admin access required"},
+    },
+)
+async def delete_user(
+    user_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(admin_guard)],
+):
+    """Delete a user by ID (admin only).
+
+    Only administrators can delete users.
+
+    Errors:
+    - **403**: When the user is not an administrator
+    - **401**: When authentication token is invalid or missing
+    """
+    await delete_user_by_id(db, user_id)
+    return {"message": "User deleted successfully"}
+
+
 account_router = APIRouter(prefix="/account", tags=["account"])
 
 
