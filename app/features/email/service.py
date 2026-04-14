@@ -10,7 +10,7 @@ All methods are async to ensure non-blocking operations.
 from html import escape
 from pathlib import Path
 
-from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType, NameEmail
+from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType, NameEmail, errors
 
 from app.core.config import settings
 
@@ -86,7 +86,7 @@ class EmailService:
         try:
             await self.fm.send_message(message)
             return True
-        except Exception:
+        except errors.ConnectionErrors:
             return False
 
     async def send_welcome_email(self, recipient_email: NameEmail, user_name: str) -> bool:
@@ -112,7 +112,7 @@ class EmailService:
             )
         except FileNotFoundError:
             return False
-        except Exception:
+        except errors.ConnectionErrors:
             return False
 
 
