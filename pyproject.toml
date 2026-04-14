@@ -20,6 +20,7 @@ dependencies = [
     "bcrypt<5",
     "PyJWT>=2.8.0",
     "types-passlib>=1.7.3",          # Type stubs for passlib
+    "fastapi-mail>=1.4.0",           # Email sending service
 ]
 
 [project.optional-dependencies]

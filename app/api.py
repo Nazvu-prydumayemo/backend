@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 
 from app.features.auth.router import router as auth_router
-from app.features.ping.router import router as ping_router
 from app.features.court.router import router as court_router
+from app.features.ping.router import router as ping_router
 from app.features.user.router import account_router, users_router
 
 api_router = APIRouter()

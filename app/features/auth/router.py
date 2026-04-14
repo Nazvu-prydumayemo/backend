@@ -1,10 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
+from fastapi_mail import NameEmail
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.features.email.service import email_service
 from app.features.user.models import User
 
 from .dependencies import get_current_active_user
@@ -39,9 +41,21 @@ CurrentUserDep = Annotated[User, Depends(get_current_active_user)]
 async def register(
     register_data: RegisterRequest,
     db: DbSessionDep,
+    background_tasks: BackgroundTasks,
 ):
-    """Register endpoint that creates a user and returns access and refresh tokens."""
-    return await register_user(db, register_data)
+    """Register endpoint that creates a user and returns access and refresh tokens.
+
+    Welcome email is sent in the background without blocking the API response.
+    """
+    token = await register_user(db, register_data)
+
+    background_tasks.add_task(
+        email_service.send_welcome_email,
+        NameEmail(email=register_data.email, name=register_data.firstname),
+        register_data.firstname,
+    )
+
+    return token
 
 
 @router.post(
