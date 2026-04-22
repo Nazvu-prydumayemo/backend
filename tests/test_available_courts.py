@@ -14,4 +14,6 @@ async def test_get_available_courts():
             assert "surface_type" in court
             assert "is_indoor" in court
             assert "price_per_hour" in court
+            assert "description" in court
+            assert "location" in court
             assert "created_at" in court
