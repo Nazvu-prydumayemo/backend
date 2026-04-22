@@ -2,13 +2,16 @@ import pytest
 from httpx import AsyncClient, ASGITransport
 from app.main import app
 
+
 @pytest.mark.asyncio
 async def test_create_court():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         payload = {
             "surface_type": "clay",
             "is_indoor": False,
-            "price_per_hour": 50.0
+            "price_per_hour": 50.0,
+            "description": "Outdoor court with evening lighting",
+            "location": "North side",
         }
 
         response = await ac.post("/api/v1/courts/", json=payload)
@@ -18,6 +21,8 @@ async def test_create_court():
         assert data["surface_type"] == payload["surface_type"]
         assert data["is_indoor"] == payload["is_indoor"]
         assert data["price_per_hour"] == payload["price_per_hour"]
+        assert data["description"] == payload["description"]
+        assert data["location"] == payload["location"]
         assert "id" in data
         assert "created_at" in data
 
@@ -60,3 +65,4 @@ async def test_get_court_by_id_returns_404_for_missing_court():
 
         assert response.status_code == 404
         assert response.json() == {"detail": "Court with id=999999 not found"}
+
