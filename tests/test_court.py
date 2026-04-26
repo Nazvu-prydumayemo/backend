@@ -7,22 +7,26 @@ from app.main import app
 async def test_create_court():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         payload = {
+            "name": "Court A",
             "surface_type": "clay",
             "is_indoor": False,
             "price_per_hour": 50.0,
             "description": "Outdoor court with evening lighting",
             "location": "North side",
+            "working_hours": "Mon-Fri 08:00-22:00",
         }
 
         response = await ac.post("/api/v1/courts/", json=payload)
         assert response.status_code == 201
         data = response.json()
         # 'number' field removed; only check other fields
+        assert data["name"] == payload["name"]
         assert data["surface_type"] == payload["surface_type"]
         assert data["is_indoor"] == payload["is_indoor"]
         assert data["price_per_hour"] == payload["price_per_hour"]
         assert data["description"] == payload["description"]
         assert data["location"] == payload["location"]
+        assert data["working_hours"] == payload["working_hours"]
         assert "id" in data
         assert "created_at" in data
 
@@ -38,9 +42,11 @@ async def test_get_courts():
 async def test_get_court_by_id():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         payload = {
+            "name": "Court B",
             "surface_type": "hard",
             "is_indoor": True,
             "price_per_hour": 75.0,
+            "working_hours": "Sat-Sun 09:00-18:00",
         }
 
         create_response = await ac.post("/api/v1/courts/", json=payload)
@@ -52,9 +58,11 @@ async def test_get_court_by_id():
         data = response.json()
 
         assert data["id"] == created_court["id"]
+        assert data["name"] == payload["name"]
         assert data["surface_type"] == payload["surface_type"]
         assert data["is_indoor"] == payload["is_indoor"]
         assert data["price_per_hour"] == payload["price_per_hour"]
+        assert data["working_hours"] == payload["working_hours"]
         assert "created_at" in data
 
 
