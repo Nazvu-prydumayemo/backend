@@ -8,16 +8,28 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.features.email.service import email_service
 from app.features.user.models import User
+from app.features.user.service import get_user_by_email
 
 from .dependencies import get_current_active_user
 from .openapi import LOGIN_OPENAPI_EXTRA
 from .schemas import (
     LoginRequest,
+    PasswordResetCodeVerify,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    PasswordResetResponse,
     RefreshTokenRequest,
     RegisterRequest,
     Token,
 )
-from .service import login_user, refresh_access_token, register_user
+from .service import (
+    confirm_password_reset,
+    login_user,
+    refresh_access_token,
+    register_user,
+    request_password_reset,
+    verify_reset_code,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -129,3 +141,102 @@ async def login(
 async def refresh_token(refresh_data: RefreshTokenRequest):
     """Refresh the access token using a refresh token"""
     return await refresh_access_token(refresh_data.refresh_token)
+
+
+@router.post(
+    "/forgot-password",
+    response_model=PasswordResetResponse,
+    status_code=200,
+    summary="Request Password Reset",
+    description="Sends a 6-digit password reset code to the provided email address. Returns success regardless of whether the email exists for security.",
+    responses={
+        200: {"description": "Password reset code sent to email"},
+        422: {"description": "Request validation failed"},
+    },
+)
+async def forgot_password(
+    reset_request: PasswordResetRequest,
+    db: DbSessionDep,
+    background_tasks: BackgroundTasks,
+):
+    """
+    Request a password reset by email.
+
+    Generates a 6-digit reset code and sends it via email asynchronously.
+    Returns success even if user doesn't exist (security measure).
+    """
+    try:
+        reset_code = await request_password_reset(db, reset_request.email)
+
+        user = await get_user_by_email(db, reset_request.email)
+        if user:
+            background_tasks.add_task(
+                email_service.send_reset_password_email,
+                NameEmail(email=reset_request.email, name=user.firstname),
+                user.firstname,
+                reset_code,
+            )
+
+        return PasswordResetResponse(
+            message="If the email exists, a password reset code has been sent."
+        )
+
+    except HTTPException as e:
+        if e.status_code in [404, 403]:
+            return PasswordResetResponse(
+                message="If the email exists, a password reset code has been sent."
+            )
+        raise
+
+
+@router.post(
+    "/verify-reset-code",
+    response_model=PasswordResetResponse,
+    status_code=200,
+    summary="Verify Reset Code",
+    description="Verifies that the provided reset code is valid and hasn't expired.",
+    responses={
+        200: {"description": "Reset code is valid"},
+        401: {"description": "Invalid or expired reset code"},
+        404: {"description": "User not found"},
+        422: {"description": "Request validation failed"},
+    },
+)
+async def verify_password_reset_code(
+    verify_data: PasswordResetCodeVerify,
+    db: DbSessionDep,
+):
+    """
+    Verify the reset code before allowing password change.
+
+    Validates that the code is correct and hasn't expired.
+    """
+    await verify_reset_code(db, verify_data.email, verify_data.code)
+    return PasswordResetResponse(message="Reset code is valid. You can now reset your password.")
+
+
+@router.post(
+    "/reset-password",
+    response_model=PasswordResetResponse,
+    status_code=200,
+    summary="Reset Password",
+    description="Resets the user password using a valid 6-digit reset code.",
+    responses={
+        200: {"description": "Password reset successfully"},
+        401: {"description": "Invalid or expired reset code"},
+        404: {"description": "User not found"},
+        422: {"description": "Request validation failed"},
+    },
+)
+async def reset_password(
+    reset_data: PasswordResetConfirm,
+    db: DbSessionDep,
+):
+    """
+    Reset password using a valid reset code.
+
+    The code is validated, and the password is updated if valid.
+    """
+    return await confirm_password_reset(
+        db, reset_data.email, reset_data.code, reset_data.new_password
+    )
