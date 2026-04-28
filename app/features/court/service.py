@@ -22,11 +22,7 @@ async def get_court_by_id(db: AsyncSession, court_id: int) -> Court | None:
 
 async def create_court(db: AsyncSession, data: CourtCreate) -> Court:
     """Create a new court with the provided data."""
-    new_court = Court(
-        surface_type=data.surface_type,
-        is_indoor=data.is_indoor,
-        price_per_hour=data.price_per_hour,
-    )
+    new_court = Court(**data.model_dump())
 
     db.add(new_court)
     await db.commit()

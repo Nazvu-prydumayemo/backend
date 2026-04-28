@@ -1,0 +1,34 @@
+"""add court information fields
+
+Revision ID: b7c8d9e0f1a2
+Revises: bdfe5e255f47
+Create Date: 2026-04-20 00:00:00.000000
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision: str = "b7c8d9e0f1a2"
+down_revision: Union[str, Sequence[str], None] = "bdfe5e255f47"
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    """Upgrade schema."""
+    op.add_column("courts", sa.Column("name", sa.String(), nullable=False, server_default="Court"))
+    op.add_column("courts", sa.Column("description", sa.Text(), nullable=True))
+    op.add_column("courts", sa.Column("location", sa.String(), nullable=True))
+    op.add_column("courts", sa.Column("working_hours", sa.String(), nullable=True))
+
+
+def downgrade() -> None:
+    """Downgrade schema."""
+    op.drop_column("courts", "working_hours")
+    op.drop_column("courts", "location")
+    op.drop_column("courts", "description")
+    op.drop_column("courts", "name")
