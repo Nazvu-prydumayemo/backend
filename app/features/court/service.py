@@ -7,10 +7,27 @@ from .models import Court
 from .schemas import CourtCreate, CourtUpdate
 
 
-async def get_courts(db: AsyncSession) -> Sequence[Court]:
-    """Retrieve all courts from the database."""
-    result = await db.execute(select(Court))
-    return result.scalars().all()
+async def get_courts(
+    db: AsyncSession, skip: int = 0, limit: int = 10
+) -> tuple[Sequence[Court], int]:
+    """Retrieve paginated courts from the database.
+
+    Args:
+        db: Database session
+        skip: Number of records to skip (pagination offset)
+        limit: Maximum number of records to return
+
+    Returns:
+        Tuple of (courts, total_count)
+    """
+
+    count_result = await db.execute(select(Court))
+    total_count = len(count_result.scalars().all())
+
+    result = await db.execute(select(Court).offset(skip).limit(limit))
+    courts = result.scalars().all()
+
+    return courts, total_count
 
 
 async def get_court_by_id(db: AsyncSession, court_id: int) -> Court | None:
