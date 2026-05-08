@@ -7,7 +7,7 @@ from app.core.database import get_db
 from app.features.auth.dependencies import admin_guard, get_current_active_user
 from app.features.user.models import User
 
-from .schemas import CourtCreate, CourtRead, PaginatedCourtRead, CourtUpdate
+from .schemas import CourtCreate, CourtRead, CourtUpdate, PaginatedCourtRead
 from .service import create_court, delete_court_by_id, get_court_by_id, get_courts, update_court
 
 router = APIRouter(prefix="/courts", tags=["Courts"])
@@ -61,7 +61,7 @@ async def get_court_route(
     return court
 
 
-@router.put("/{court_id}", response_model=CourtRead, status_code=status.HTTP_200_OK)
+@router.patch("/{court_id}", response_model=CourtRead, status_code=status.HTTP_200_OK)
 async def update_court_route(
     court_id: int,
     court_in: CourtUpdate,
