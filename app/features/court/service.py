@@ -55,7 +55,7 @@ async def update_court(db: AsyncSession, court_id: int, data: CourtUpdate) -> Co
     if not court:
         return None
 
-    update_data = data.model_dump(exclude_unset=True)
+    update_data = data.model_dump(exclude_unset=True, exclude_none=True)
 
     for key, value in update_data.items():
         setattr(court, key, value)
