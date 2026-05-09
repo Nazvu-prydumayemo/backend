@@ -78,7 +78,7 @@ async def update_court_route(
     return court
 
 
-@router.delete("/{court_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{court_id}", response_model=CourtRead, status_code=status.HTTP_200_OK)
 async def delete_court_route(
     court_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -91,4 +91,4 @@ async def delete_court_route(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Court with id={court_id} not found",
         )
-    return None
+    return court
