@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from app.core.config import settings
 from app.db.base import Base
 import app.features.court.models  # noqa: F401
+import app.features.order.models  # noqa: F401
 import app.features.user.models  # noqa: F401
 
 
