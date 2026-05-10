@@ -51,7 +51,7 @@ docker-compose exec -T backend alembic upgrade head
 echo "Checking backend health..."
 BACKEND_HEALTHY="false"
 for i in {1..30}; do
-    if curl -fsSL https://0pcode.tech/api/v1/status/ping; then
+    if docker-compose exec -T backend python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/status/ping')" > /dev/null 2>&1; then
         echo "Backend is healthy!"
         BACKEND_HEALTHY="true"
         break
