@@ -28,3 +28,30 @@ class RegisterRequest(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
+
+class PasswordResetRequest(BaseModel):
+    """Request to initiate password reset."""
+
+    email: EmailStr
+
+
+class PasswordResetCodeVerify(BaseModel):
+    """Request to verify the reset code."""
+
+    email: EmailStr
+    code: str
+
+
+class PasswordResetConfirm(BaseModel):
+    """Request to confirm password reset with code and new password."""
+
+    email: EmailStr
+    code: str
+    new_password: StrongPassword
+
+
+class PasswordResetResponse(BaseModel):
+    """Response for password reset endpoints."""
+
+    message: str

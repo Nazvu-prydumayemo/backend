@@ -1,5 +1,6 @@
 import asyncio
 import re
+import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
@@ -23,6 +24,15 @@ async def verify_password(password: str, hashed: str) -> bool:
     """Return True when a plaintext password matches the stored hash."""
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, pwd_context.verify, password, hashed)
+
+
+def generate_reset_code() -> str:
+    """Generate a random 6-digit reset code.
+
+    Returns:
+        str: A 6-digit code as a string.
+    """
+    return str(secrets.randbelow(1000000)).zfill(6)
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:

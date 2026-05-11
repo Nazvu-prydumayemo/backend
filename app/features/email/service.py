@@ -115,5 +115,34 @@ class EmailService:
         except errors.ConnectionErrors:
             return False
 
+    async def send_reset_password_email(
+        self, recipient_email: NameEmail, user_name: str, reset_code: str
+    ) -> bool:
+        """
+        Send a password reset email with a 6-digit code to a user asynchronously.
+
+        Args:
+            recipient_email (NameEmail): Recipient email address object.
+            user_name (str): Name of the user.
+            reset_code (str): The 6-digit reset code.
+
+        Returns:
+            bool: True if email sent successfully, False otherwise.
+        """
+        try:
+            subject = "Password Reset Code"
+            template = self._load_template("password_reset.html")
+            body = template.format(user_name=escape(user_name), reset_code=escape(reset_code))
+
+            return await self.send_email(
+                subject=subject,
+                recipients=[recipient_email],
+                body=body,
+            )
+        except FileNotFoundError:
+            return False
+        except errors.ConnectionErrors:
+            return False
+
 
 email_service = EmailService()

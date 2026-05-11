@@ -1,10 +1,11 @@
-from pydantic import BaseModel
-from pydantic import ConfigDict
 from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict
 
 
 class CourtBase(BaseModel):
     """Base schema for Court with common fields used in creation and reading."""
+
     name: str
     surface_type: str
     is_indoor: bool
@@ -20,6 +21,7 @@ class CourtCreate(CourtBase):
 
 class CourtUpdate(BaseModel):
     """Schema for updating an existing Court. All fields are optional."""
+
     name: str | None = None
     surface_type: str | None = None
     is_indoor: bool | None = None
@@ -31,7 +33,17 @@ class CourtUpdate(BaseModel):
 
 class CourtRead(CourtBase):
     """Schema for reading Court data from the database."""
+
     id: int
     created_at: datetime
 
-    model_config = ConfigDict(from_attributes=True) 
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PaginatedCourtRead(BaseModel):
+    """Schema for paginated court results."""
+
+    items: list[CourtRead]
+    total: int
+    skip: int
+    limit: int
