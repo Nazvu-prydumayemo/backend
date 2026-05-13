@@ -28,8 +28,8 @@ class Settings(BaseSettings):
     # Logging Configuration
     LOG_LEVEL: str
     LOKI_URL: str
-    LOKI_USER: str
-    LOKI_PASSWORD: str
+    LOKI_USER: str = ""
+    LOKI_PASSWORD: str = ""
 
     model_config = SettingsConfigDict(env_file=".env")
 
