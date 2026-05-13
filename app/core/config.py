@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     MAIL_TLS: bool = True
     MAIL_SSL: bool = False
 
+    # Logging Configuration
+    LOG_LEVEL: str
+    LOKI_URL: str
+    LOKI_USER: str
+    LOKI_PASSWORD: str
+
     model_config = SettingsConfigDict(env_file=".env")
 
 
