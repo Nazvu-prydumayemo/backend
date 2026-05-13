@@ -97,19 +97,14 @@ class LokiHandler(logging.Handler):
         self.queue: asyncio.Queue[Any] | None = None
         self.session: aiohttp.ClientSession | None = None
         self.task: asyncio.Task | None = None
-        self._cleanup_task: asyncio.Task | None = None
         self._initialized = False
 
-    def initialize_async(self):
-        """Initialize async components. Call this after event loop is running."""
+    def initialize_async(self) -> None:
+        """Initialize async components. Must be called with a running event loop (e.g., from FastAPI lifespan)."""
         if self._initialized:
             return
 
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        loop = asyncio.get_running_loop()  # Raises RuntimeError if called outside a running loop
 
         self.queue = asyncio.Queue()
         self.session = aiohttp.ClientSession()
@@ -118,10 +113,11 @@ class LokiHandler(logging.Handler):
         self.task = loop.create_task(self._process_logs())
         self._initialized = True
 
-    def emit(self, record: LogRecord) -> None:
+    def emit(self, record: logging.LogRecord) -> None:
         """Add log record to queue for async processing."""
         if not self._initialized:
-            self.initialize_async()
+            # Handler not yet initialized from lifespan; skip Loki push for this record
+            return
 
         try:
             msg = self.format(record)
@@ -142,6 +138,7 @@ class LokiHandler(logging.Handler):
                     msg = await asyncio.wait_for(self.queue.get(), timeout=self.flush_interval)
                     batch.append(msg)
                 except TimeoutError:
+                    # Timeout is expected; triggers a periodic flush of partial batches
                     pass
 
                 # Send batch if full or timed out with messages
@@ -199,26 +196,21 @@ class LokiHandler(logging.Handler):
 
     def close(self) -> None:
         """Clean up resources (sync wrapper for logging.Handler interface)."""
+        super().close()
+        if not self._initialized:
+            return
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # Schedule the async cleanup to run later and store reference
-                self._cleanup_task = asyncio.ensure_future(self._close_async())
-            else:
-                loop.run_until_complete(self._close_async())
-        except Exception:
-            pass
+            loop = asyncio.get_running_loop()
+            loop.create_task(self._close_async())
+        except RuntimeError:
+            # No running event loop; cancel the background task directly
+            if self.task and not self.task.done():
+                self.task.cancel()
 
-    def __del__(self):
-        """Attempt cleanup on deletion."""
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                self._cleanup_task = asyncio.ensure_future(self._close_async())
-            else:
-                loop.run_until_complete(self._close_async())
-        except Exception:
-            pass
+    def __del__(self) -> None:
+        """Cancel background task on deletion."""
+        if self.task and not self.task.done():
+            self.task.cancel()
 
 
 def setup_logging(
