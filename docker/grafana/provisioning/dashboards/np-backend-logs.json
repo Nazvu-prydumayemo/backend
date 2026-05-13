@@ -118,7 +118,7 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "sum(count_over_time({job=\"np-backend\"} | json | level=\"error\" [5m]))",
+          "expr": "sum(count_over_time({job=\"np-backend\"} | json | level=\"ERROR\" [5m]))",
           "refId": "A"
         }
       ],
