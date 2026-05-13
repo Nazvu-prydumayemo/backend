@@ -20,7 +20,7 @@ services:
     restart: unless-stopped
 
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:3.7.2
     container_name: np_loki
     volumes:
       - ./docker/loki/loki-config.yaml:/etc/loki/config.yaml:ro
