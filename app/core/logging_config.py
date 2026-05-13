@@ -3,7 +3,6 @@ import json
 import logging
 import sys
 import time
-from logging import LogRecord
 from typing import Any
 
 import aiohttp
@@ -42,7 +41,7 @@ class StructuredFormatter(logging.Formatter):
     Formats log records as JSON with structured metadata.
     """
 
-    def format(self, record: LogRecord) -> str:
+    def format(self, record: logging.LogRecord) -> str:
         log_data = {
             "timestamp": self.formatTime(record),
             "level": record.levelname,
