@@ -201,16 +201,13 @@ class LokiHandler(logging.Handler):
             return
         try:
             loop = asyncio.get_running_loop()
+            # Fire-and-forget async cleanup; the task runs on the active loop.
+            # Errors from _close_async are non-critical (session/task teardown).
             loop.create_task(self._close_async())
         except RuntimeError:
             # No running event loop; cancel the background task directly
             if self.task and not self.task.done():
                 self.task.cancel()
-
-    def __del__(self) -> None:
-        """Cancel background task on deletion."""
-        if self.task and not self.task.done():
-            self.task.cancel()
 
 
 def setup_logging(
