@@ -14,12 +14,26 @@ class LoggingMiddleware(BaseHTTPMiddleware):
     Captures method, path, status code, response time, and client IP.
     """
 
+    def _get_client_ip(self, request: Request) -> str:
+        x_forwarded_for = request.headers.get("x-forwarded-for")
+        if x_forwarded_for:
+            forwarded_ips = [ip.strip() for ip in x_forwarded_for.split(",")]
+            for ip in forwarded_ips:
+                if ip:
+                    return ip
+
+        x_real_ip = request.headers.get("x-real-ip")
+        if x_real_ip:
+            return x_real_ip.strip()
+
+        return request.client.host if request.client else "unknown"
+
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Start timer
         start_time = time.time()
 
         # Get client info
-        client_ip = request.client.host if request.client else "unknown"
+        client_ip = self._get_client_ip(request)
 
         # Log request
         logger.info(
