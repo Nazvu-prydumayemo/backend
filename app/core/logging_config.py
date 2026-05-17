@@ -202,7 +202,8 @@ class LokiHandler(logging.Handler):
                     batch.append(msg)
 
                 except TimeoutError:
-                    pass
+                    # No log item arrived within flush_interval; continue processing loop.
+                    continue
 
                 now = time.monotonic()
 
