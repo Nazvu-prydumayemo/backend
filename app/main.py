@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
     root_logger = logging.getLogger()
     loki_handlers = [h for h in root_logger.handlers if isinstance(h, LokiHandler)]
     for handler in loki_handlers:
-        handler.initialize_async()
+        await handler._ensure_initialized()
 
     yield
 

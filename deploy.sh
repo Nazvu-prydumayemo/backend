@@ -48,7 +48,7 @@ fi
 echo "Checking Loki readiness..."
 LOKI_READY="false"
 for i in {1..30}; do
-    if docker-compose exec -T loki wget -q -O- http://127.0.0.1:3100/ready > /dev/null 2>&1; then
+    if docker-compose exec -T loki wget --no-verbose --tries=1 --spider http://127.0.0.1:3100/ready > /dev/null 2>&1; then
         echo "Loki is ready!"
         LOKI_READY="true"
         break

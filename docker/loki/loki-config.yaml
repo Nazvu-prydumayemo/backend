@@ -5,7 +5,6 @@ ingester:
   chunk_retain_period: 1m
   chunk_encoding: gzip
   max_chunk_age: 1h
-  max_streams_per_user: 10000
   lifecycler:
     ring:
       kvstore:
@@ -30,7 +29,6 @@ schema_config:
         period: 24h
 
 limits_config:
-  enforce_metric_name: false
   reject_old_samples: true
   reject_old_samples_max_age: 168h
   ingestion_rate_mb: 8
