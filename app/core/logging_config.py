@@ -2,7 +2,10 @@ import asyncio
 import json
 import logging
 import sys
+import threading
 import time
+from collections import deque
+from logging import LogRecord
 from typing import Any
 
 import aiohttp
@@ -41,7 +44,7 @@ class StructuredFormatter(logging.Formatter):
     Formats log records as JSON with structured metadata.
     """
 
-    def format(self, record: logging.LogRecord) -> str:
+    def format(self, record: LogRecord) -> str:
         log_data = {
             "timestamp": self.formatTime(record),
             "level": record.levelname,
@@ -53,18 +56,14 @@ class StructuredFormatter(logging.Formatter):
             "message": record.getMessage(),
         }
 
-        # Add any extra fields from logger.info(..., extra={...})
-        # These are added directly to the LogRecord's __dict__
         for key, value in record.__dict__.items():
-            # Skip standard LogRecord attributes, private attributes, and callables
             if key not in STANDARD_LOG_ATTRS and not key.startswith("_") and not callable(value):
                 try:
-                    # Try to JSON-serialize the value to ensure it's safe
                     json.dumps(value)
-                    log_data[key] = value
                 except (TypeError, ValueError):
-                    # Skip values that can't be JSON-serialized
-                    pass
+                    continue
+
+                log_data[key] = value
 
         if record.exc_info:
             log_data["exception"] = self.formatException(record.exc_info)
@@ -94,61 +93,152 @@ class LokiHandler(logging.Handler):
         self.loki_password = loki_password
         self.batch_size = batch_size
         self.flush_interval = flush_interval
+
         self.queue: asyncio.Queue[Any] | None = None
         self.session: aiohttp.ClientSession | None = None
         self.task: asyncio.Task | None = None
-        self._initialized = False
+        self._init_task: asyncio.Task | None = None
+        self._cleanup_task: asyncio.Task | None = None
 
-    def initialize_async(self) -> None:
-        """Initialize async components. Must be called with a running event loop (e.g., from FastAPI lifespan)."""
+        self._initialized = False
+        self._init_lock = asyncio.Lock()
+        self._init_check_lock = threading.Lock()
+        self.dropped_logs = 0
+        self._drop_lock = threading.Lock()
+        self._shutdown = asyncio.Event()
+        self._startup_buffer: deque[str] = deque(maxlen=1000)
+        self._startup_buffer_lock = threading.Lock()
+
+    async def _ensure_initialized(self):
+        """Idempotent async initialization."""
         if self._initialized:
             return
 
-        loop = asyncio.get_running_loop()  # Raises RuntimeError if called outside a running loop
+        async with self._init_lock:
+            if self._initialized:
+                return
 
-        self.queue = asyncio.Queue()
-        self.session = aiohttp.ClientSession()
+            if self._shutdown.is_set():
+                return
 
-        # Start the background task that processes logs
-        self.task = loop.create_task(self._process_logs())
-        self._initialized = True
+            self.queue = asyncio.Queue(maxsize=10_000)
+            self.session = aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=10), connector=aiohttp.TCPConnector(limit=20)
+            )
 
-    def emit(self, record: logging.LogRecord) -> None:
+            with self._startup_buffer_lock:
+                for msg in self._startup_buffer:
+                    try:
+                        await self.queue.put(msg)
+                    except asyncio.QueueFull:
+                        with self._drop_lock:
+                            self.dropped_logs += 1
+                self._startup_buffer.clear()
+
+            self.task = asyncio.create_task(self._process_logs())
+            self._initialized = True
+
+    def emit(self, record: LogRecord) -> None:
         """Add log record to queue for async processing."""
-        if not self._initialized:
-            # Handler not yet initialized from lifespan; skip Loki push for this record
+        if self._shutdown.is_set():
+            with self._drop_lock:
+                self.dropped_logs += 1
             return
+
+        if not self._initialized and self._init_task is None:
+            with self._init_check_lock:
+                if not self._initialized and self._init_task is None:
+                    try:
+                        loop = asyncio.get_running_loop()
+                        self._init_task = loop.create_task(self._ensure_initialized())
+                    except RuntimeError:
+                        with self._drop_lock:
+                            self.dropped_logs += 1
+                        return
 
         try:
             msg = self.format(record)
-            if self.queue:
-                self.queue.put_nowait(msg)
+        except Exception:
+            self.handleError(record)
+            return
+
+        if self.queue is None:
+            with self._startup_buffer_lock:
+                if len(self._startup_buffer) == self._startup_buffer.maxlen:
+                    with self._drop_lock:
+                        self.dropped_logs += 1
+
+                self._startup_buffer.append(msg)
+            return
+
+        try:
+            self.queue.put_nowait(msg)
+        except asyncio.QueueFull:
+            with self._drop_lock:
+                self.dropped_logs += 1
+        except (AttributeError, RuntimeError):
+            with self._drop_lock:
+                self.dropped_logs += 1
         except Exception:
             self.handleError(record)
 
     async def _process_logs(self) -> None:
         """Process logs from queue and send to Loki."""
-        batch = []
+        batch: list[str] = []
+        last_flush = time.monotonic()
 
         while True:
+            queue = self.queue
+
+            if self._shutdown.is_set() and (queue is None or queue.empty()):
+                break
+
             try:
-                # Wait for either a message or timeout
+                if queue is None:
+                    await asyncio.sleep(self.flush_interval)
+                    continue
+
                 try:
-                    assert self.queue is not None
-                    msg = await asyncio.wait_for(self.queue.get(), timeout=self.flush_interval)
+                    msg = await asyncio.wait_for(queue.get(), timeout=self.flush_interval)
                     batch.append(msg)
+
                 except TimeoutError:
-                    # Timeout is expected; triggers a periodic flush of partial batches
                     pass
 
-                # Send batch if full or timed out with messages
-                if len(batch) >= self.batch_size or (
-                    batch and self.task  # Timeout occurred
+                now = time.monotonic()
+
+                if batch and (
+                    len(batch) >= self.batch_size or (now - last_flush >= self.flush_interval)
                 ):
                     await self._send_batch(batch)
-                    batch = []
+                    batch.clear()
+                    last_flush = now
+
             except Exception as e:
                 print(f"Error processing logs: {e}", file=sys.stderr)
+
+        queue = self.queue
+
+        if queue is not None:
+            while not queue.empty():
+                try:
+                    msg = queue.get_nowait()
+                    batch.append(msg)
+
+                    if len(batch) >= self.batch_size:
+                        await self._send_batch(batch)
+                        batch.clear()
+
+                except asyncio.QueueEmpty:
+                    break
+                except Exception:
+                    break
+
+        if batch:
+            try:
+                await self._send_batch(batch)
+            except Exception as e:
+                print(f"Error flushing final batch: {e}", file=sys.stderr)
 
     async def _send_batch(self, batch: list[str]) -> None:
         """Send a batch of logs to Loki."""
@@ -156,8 +246,8 @@ class LokiHandler(logging.Handler):
             return
 
         try:
-            # Use wall-clock time in nanoseconds for Loki
             timestamp = str(time.time_ns())
+
             streams = [
                 {
                     "stream": {"job": self.job_name},
@@ -181,33 +271,61 @@ class LokiHandler(logging.Handler):
                 if response.status != 204:
                     error_text = await response.text()
                     print(
-                        f"Loki error: {response.status} - {error_text}",
+                        f"Loki error:{response.status} - {error_text}",
                         file=sys.stderr,
                     )
+        except TimeoutError:
+            print(f"Loki timeout: unable to send {len(batch)} logs", file=sys.stderr)
+        except aiohttp.ClientError as e:
+            print(f"Loki network error: {type(e).__name__}: {e}", file=sys.stderr)
         except Exception as e:
-            print(f"Error sending logs to Loki: {e}", file=sys.stderr)
+            print(f"Loki error: {type(e).__name__}: {e}", file=sys.stderr)
 
     async def _close_async(self) -> None:
         """Clean up resources asynchronously."""
+
+        self._shutdown.set()
+
+        if self._init_task and not self._init_task.done():
+            self._init_task.cancel()
+            try:
+                await self._init_task
+            except asyncio.CancelledError:
+                pass
+
         if self.task:
-            self.task.cancel()
+            try:
+                await self.task
+            except asyncio.CancelledError:
+                pass
+
         if self.session:
             await self.session.close()
 
     def close(self) -> None:
         """Clean up resources (sync wrapper for logging.Handler interface)."""
-        super().close()
-        if not self._initialized:
-            return
         try:
-            loop = asyncio.get_running_loop()
-            # Fire-and-forget async cleanup; the task runs on the active loop.
-            # Errors from _close_async are non-critical (session/task teardown).
-            loop.create_task(self._close_async())
-        except RuntimeError:
-            # No running event loop; cancel the background task directly
-            if self.task and not self.task.done():
-                self.task.cancel()
+            try:
+                loop = asyncio.get_running_loop()
+                self._cleanup_task = asyncio.ensure_future(self._close_async())
+                return
+            except RuntimeError:
+                pass
+
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_closed():
+                    return
+                if loop.is_running():
+                    self._cleanup_task = asyncio.ensure_future(self._close_async())
+                else:
+                    loop.run_until_complete(self._close_async())
+            except Exception:
+                pass
+        except Exception as e:
+            print(f"Loki handler close error: {e}", file=sys.stderr)
+        finally:
+            super().close()
 
 
 def setup_logging(
