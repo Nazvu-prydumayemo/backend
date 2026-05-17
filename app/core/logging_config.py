@@ -320,8 +320,8 @@ class LokiHandler(logging.Handler):
                     self._cleanup_task = asyncio.ensure_future(self._close_async())
                 else:
                     loop.run_until_complete(self._close_async())
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Loki handler loop cleanup error: {e}", file=sys.stderr)
         except Exception as e:
             print(f"Loki handler close error: {e}", file=sys.stderr)
         finally:
