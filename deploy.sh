@@ -45,6 +45,38 @@ if [ "$POSTGRES_READY" != "true" ]; then
     exit 1
 fi
 
+echo "Checking Loki readiness..."
+LOKI_READY="false"
+for i in {1..30}; do
+    if docker-compose exec -T loki wget -q -O- http://127.0.0.1:3100/ready > /dev/null 2>&1; then
+        echo "Loki is ready!"
+        LOKI_READY="true"
+        break
+    fi
+    echo "Attempt $i/30: Loki not ready yet, waiting..."
+    sleep 2
+done
+
+if [ "$LOKI_READY" != "true" ]; then
+    echo "WARNING: Loki did not become ready after 30 attempts. Logging may not be available."
+fi
+
+echo "Checking Grafana readiness..."
+GRAFANA_READY="false"
+for i in {1..30}; do
+    if docker-compose exec -T grafana wget -q -O- http://127.0.0.1:3000/api/health > /dev/null 2>&1; then
+        echo "Grafana is ready!"
+        GRAFANA_READY="true"
+        break
+    fi
+    echo "Attempt $i/30: Grafana not ready yet, waiting..."
+    sleep 2
+done
+
+if [ "$GRAFANA_READY" != "true" ]; then
+    echo "WARNING: Grafana did not become ready after 30 attempts. Dashboards may not be available."
+fi
+
 echo "Running database migrations..."
 docker-compose exec -T backend alembic upgrade head
 

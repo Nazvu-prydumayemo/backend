@@ -1,0 +1,42 @@
+auth_enabled: false
+
+ingester:
+  chunk_idle_period: 3m
+  chunk_retain_period: 1m
+  chunk_encoding: gzip
+  max_chunk_age: 1h
+  max_streams_per_user: 10000
+  lifecycler:
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+
+storage_config:
+  tsdb_shipper:
+    active_index_directory: /loki/tsdb-index
+    cache_location: /loki/tsdb-cache
+  filesystem:
+    directory: /loki/chunks
+
+schema_config:
+  configs:
+    - from: 2020-10-24
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  enforce_metric_name: false
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+  ingestion_rate_mb: 8
+  ingestion_burst_size_mb: 16
+  max_global_streams_per_user: 10000
+
+server:
+  http_listen_port: 3100
+  log_level: info
