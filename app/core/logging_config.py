@@ -5,7 +5,6 @@ import sys
 import threading
 import time
 from collections import deque
-from logging import LogRecord
 from typing import Any
 
 import aiohttp
@@ -44,7 +43,7 @@ class StructuredFormatter(logging.Formatter):
     Formats log records as JSON with structured metadata.
     """
 
-    def format(self, record: LogRecord) -> str:
+    def format(self, record: logging.LogRecord) -> str:
         log_data = {
             "timestamp": self.formatTime(record),
             "level": record.levelname,
@@ -138,7 +137,7 @@ class LokiHandler(logging.Handler):
             self.task = asyncio.create_task(self._process_logs())
             self._initialized = True
 
-    def emit(self, record: LogRecord) -> None:
+    def emit(self, record: logging.LogRecord) -> None:
         """Add log record to queue for async processing."""
         if self._shutdown.is_set():
             with self._drop_lock:
