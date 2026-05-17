@@ -305,7 +305,7 @@ class LokiHandler(logging.Handler):
         """Clean up resources (sync wrapper for logging.Handler interface)."""
         try:
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
                 self._cleanup_task = asyncio.ensure_future(self._close_async())
                 return
             except RuntimeError:
