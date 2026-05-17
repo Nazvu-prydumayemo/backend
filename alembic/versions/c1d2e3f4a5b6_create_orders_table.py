@@ -1,7 +1,7 @@
 """create orders table
 
 Revision ID: c1d2e3f4a5b6
-Revises: b7c8d9e0f1a2
+Revises: 2bac88545b60
 Create Date: 2026-05-10 00:00:00.000000
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "c1d2e3f4a5b6"
-down_revision: Union[str, Sequence[str], None] = "b7c8d9e0f1a2"
+down_revision: Union[str, Sequence[str], None] = "2bac88545b60"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

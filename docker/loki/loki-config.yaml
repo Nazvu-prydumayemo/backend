@@ -5,6 +5,9 @@ ingester:
   chunk_retain_period: 1m
   chunk_encoding: gzip
   max_chunk_age: 1h
+  wal:
+    enabled: true
+    dir: /loki/wal
   lifecycler:
     ring:
       kvstore:
@@ -38,3 +41,8 @@ limits_config:
 server:
   http_listen_port: 3100
   log_level: info
+
+compactor:
+  working_directory: /loki/compactor
+  compaction_interval: 10m
+  retention_enabled: false
