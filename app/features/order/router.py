@@ -8,8 +8,13 @@ from app.features.auth.dependencies import get_current_active_user
 from app.features.court.service import get_court_by_id
 from app.features.user.models import User
 
-from .schemas import OrderCreate, OrderRead
-from .service import create_order, get_order_by_id, get_orders_by_user_id
+from .schemas import OrderCreate, OrderDetailResponse, OrderRead
+from .service import (
+    OrderValidationError,
+    create_order_with_slots,
+    get_order_by_id,
+    get_orders_by_user_id,
+)
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -21,11 +26,12 @@ AUTH_RESPONSES = {
 
 @router.post(
     "/",
-    response_model=OrderRead,
+    response_model=OrderDetailResponse,
     status_code=status.HTTP_201_CREATED,
     responses={
         **AUTH_RESPONSES,
-        404: {"description": "Court not found"},
+        400: {"description": "Validation error - Booking slots not available"},
+        404: {"description": "Court or booking slots not found"},
         422: {"description": "Validation error - Invalid input data"},
     },
 )
@@ -34,7 +40,11 @@ async def create_order_route(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_active_user)],
 ):
-    """Create a new court order for the current authenticated user."""
+    """Create a new court order with booking slots for the current authenticated user.
+
+    The request should include a list of booking slot IDs that you want to book.
+    All slots must be available, otherwise the entire order is rejected (all-or-nothing).
+    """
     court = await get_court_by_id(db, order_in.court_id)
     if not court:
         raise HTTPException(
@@ -42,7 +52,21 @@ async def create_order_route(
             detail=f"Court with id={order_in.court_id} not found",
         )
 
-    return await create_order(db, current_user.id, order_in)
+    try:
+        return await create_order_with_slots(
+            db,
+            current_user.id,
+            order_in.court_id,
+            order_in.booking_slot_ids,
+        )
+    except OrderValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": e.message,
+                "unavailable_slots": e.unavailable_slots,
+            },
+        ) from e
 
 
 @router.get(
@@ -61,7 +85,7 @@ async def get_orders_route(
 
 @router.get(
     "/{order_id}",
-    response_model=OrderRead,
+    response_model=OrderDetailResponse,
     status_code=status.HTTP_200_OK,
     responses={
         **AUTH_RESPONSES,

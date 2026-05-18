@@ -1,4 +1,5 @@
 from datetime import date, datetime, time
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean,
@@ -17,6 +18,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.features.order.models import Order
 
 
 class Court(Base):
@@ -113,6 +117,7 @@ class BookingSlot(Base):
 
     # Relationships
     court: Mapped["Court"] = relationship("Court", back_populates="booking_slots", init=False)
+    order: Mapped["Order"] = relationship("Order", back_populates="booking_slots", init=False)
 
     __table_args__ = (
         UniqueConstraint("court_id", "slot_date", "start_time", name="uq_booking_slot"),
