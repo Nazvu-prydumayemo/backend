@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from datetime import UTC
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -39,7 +40,10 @@ async def create_order_with_slots(
 ) -> Order:
     """Create an order with multiple booking slots.
 
-    Validates that all slots exist, belong to the court, and are available.
+    Validates that:
+    - All slots exist and belong to the court
+    - All slots are available
+    - All slot dates are within the allowed range (today to +7 days)
     Uses atomic transaction: all slots marked unavailable together or none.
 
     Args:
@@ -52,7 +56,7 @@ async def create_order_with_slots(
         Created Order with populated booking_slots relationship
 
     Raises:
-        OrderValidationError: If validation fails with details of unavailable slots
+        OrderValidationError: If validation fails with details of unavailable slots or invalid dates
     """
     # Fetch all requested booking slots
     query = select(BookingSlot).where(BookingSlot.id.in_(booking_slot_ids))
@@ -70,6 +74,31 @@ async def create_order_with_slots(
     if invalid_slots:
         raise OrderValidationError(
             f"Slots {[s.id for s in invalid_slots]} do not belong to court {court_id}"
+        )
+
+    # Validate: all slots are within allowed date range (today to +7 days)
+    from datetime import datetime, timedelta
+
+    today = datetime.now(UTC).date()
+    max_date = today + timedelta(days=7)
+
+    out_of_range_slots = []
+    for slot in slots:
+        if slot.slot_date < today or slot.slot_date > max_date:
+            out_of_range_slots.append(
+                {
+                    "id": slot.id,
+                    "slot_date": slot.slot_date.isoformat(),
+                    "start_time": slot.start_time.isoformat(),
+                    "end_time": slot.end_time.isoformat(),
+                    "reason": "Date is outside allowed range (today to +7 days)",
+                }
+            )
+
+    if out_of_range_slots:
+        raise OrderValidationError(
+            f"{len(out_of_range_slots)} slot(s) are outside the allowed booking range (today to +7 days)",
+            unavailable_slots=out_of_range_slots,
         )
 
     # Validate: all slots are available (strict mode - all or nothing)

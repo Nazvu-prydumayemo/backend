@@ -1,12 +1,34 @@
 """Utility functions for court scheduling and booking slot management."""
 
 from collections.abc import Sequence
-from datetime import date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import BookingSlot, Court, CourtSchedule
+
+
+def validate_slot_date(target_date: date) -> tuple[bool, str]:
+    """Validate that a slot date is within the allowed booking range (today to +7 days).
+
+    Args:
+        target_date: Date to validate
+
+    Returns:
+        Tuple of (is_valid, error_message). is_valid is True if date is valid, False otherwise.
+    """
+    # Get today's date in UTC
+    today = datetime.now(UTC).date()
+    max_date = today + timedelta(days=7)
+
+    if target_date < today:
+        return False, f"Cannot query slots for past dates. Today is {today}."
+
+    if target_date > max_date:
+        return False, f"Can only query slots up to {max_date} ({7} days from today)."
+
+    return True, ""
 
 
 def get_30min_slots(opening_time: time, closing_time: time) -> list[tuple[time, time]]:

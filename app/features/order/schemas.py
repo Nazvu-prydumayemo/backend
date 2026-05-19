@@ -19,7 +19,11 @@ class BookingSlotDetail(BaseModel):
 
 
 class OrderCreate(BaseModel):
-    """Request to create an order with multiple booking slots"""
+    """Request to create an order with multiple booking slots.
+
+    Note: All booking slots must have dates within the allowed range (today to 7 days from today).
+    Orders for past dates or dates beyond +7 days will be rejected.
+    """
 
     court_id: int
     booking_slot_ids: list[int]

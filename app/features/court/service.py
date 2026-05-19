@@ -159,9 +159,10 @@ async def get_available_slots(
     """Get available 30-minute slots for a court on a specific date.
 
     This function:
-    1. Checks if slots are already generated for this date
-    2. If not, generates them based on the court's weekly schedule
-    3. Returns all available slots
+    1. Validates that the date is within the allowed range (today to +7 days)
+    2. Checks if slots are already generated for this date
+    3. If not, generates them based on the court's weekly schedule
+    4. Returns all available slots
 
     Args:
         db: Database session
@@ -170,7 +171,17 @@ async def get_available_slots(
 
     Returns:
         Sequence of available BookingSlot records
+
+    Raises:
+        ValueError: If target_date is outside the allowed range (today to +7 days)
     """
+    from .utils import validate_slot_date
+
+    # Validate date is within allowed range
+    is_valid, error_message = validate_slot_date(target_date)
+    if not is_valid:
+        raise ValueError(error_message)
+
     return await utils_get_available_slots(db, court_id, target_date)
 
 

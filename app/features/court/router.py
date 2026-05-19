@@ -201,7 +201,11 @@ async def get_available_slots_route(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_active_user)],
     slot_date: Annotated[
-        date, Query(..., description="Date for which to retrieve available slots (YYYY-MM-DD)")
+        date,
+        Query(
+            ...,
+            description="Date for which to retrieve available slots (YYYY-MM-DD). Slots available from today to 7 days ahead.",
+        ),
     ],
 ):
     """Get available 30-minute slots for a court on a specific date.
@@ -210,7 +214,7 @@ async def get_available_slots_route(
     created based on the court's weekly schedule.
 
     Query Parameters:
-        - slot_date: Date for which to retrieve slots (format: YYYY-MM-DD)
+        - slot_date: Date for which to retrieve slots (format: YYYY-MM-DD). Must be between today and 7 days from today.
 
     Returns:
         List of available 30-minute slots with start and end times
@@ -225,8 +229,14 @@ async def get_available_slots_route(
             detail=f"Court with id={court_id} not found",
         )
 
-    # Get available slots (auto-generates if needed)
-    available_slots = await get_available_slots(db, court_id, slot_date)
+    # Validate slot date is within allowed range
+    try:
+        available_slots = await get_available_slots(db, court_id, slot_date)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
 
     return AvailableSlotsResponse(
         court_id=court_id,
