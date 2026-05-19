@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import date, datetime, time
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CourtBase(BaseModel):
@@ -47,3 +47,66 @@ class PaginatedCourtRead(BaseModel):
     total: int
     skip: int
     limit: int
+
+
+# CourtSchedule Schemas
+class CourtScheduleBase(BaseModel):
+    """Base schema for CourtSchedule."""
+
+    day_of_week: int = Field(ge=0, le=6, description="Day of week (0=Monday, 6=Sunday)")
+    opening_time: time | None = None  # NULL = court closed on this day
+    closing_time: time | None = None
+
+
+class CourtScheduleCreate(CourtScheduleBase):
+    """Schema for creating a court schedule entry."""
+
+
+class CourtScheduleUpdate(BaseModel):
+    """Schema for updating a court schedule entry. All fields are optional."""
+
+    day_of_week: int | None = Field(
+        None, ge=0, le=6, description="Day of week (0=Monday, 6=Sunday)"
+    )
+    opening_time: time | None = None
+    closing_time: time | None = None
+
+
+class CourtScheduleRead(CourtScheduleBase):
+    """Schema for reading court schedule data from the database."""
+
+    id: int
+    court_id: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# BookingSlot Schemas
+class BookingSlotBase(BaseModel):
+    """Base schema for BookingSlot."""
+
+    start_time: time
+    end_time: time
+
+
+class BookingSlotRead(BookingSlotBase):
+    """Schema for reading booking slot data from the database."""
+
+    id: int
+    court_id: int
+    slot_date: date
+    is_available: bool
+    order_id: int | None = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AvailableSlotsResponse(BaseModel):
+    """Schema for available slots response."""
+
+    court_id: int
+    slot_date: date
+    available_slots: list[BookingSlotRead]
+    total_slots: int

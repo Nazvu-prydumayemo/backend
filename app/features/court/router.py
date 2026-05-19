@@ -1,14 +1,33 @@
+from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.features.auth.dependencies import admin_guard, get_current_active_user
 from app.features.user.models import User
 
-from .schemas import CourtCreate, CourtRead, CourtUpdate, PaginatedCourtRead
-from .service import create_court, delete_court_by_id, get_court_by_id, get_courts, update_court
+from .schemas import (
+    AvailableSlotsResponse,
+    BookingSlotRead,
+    CourtCreate,
+    CourtRead,
+    CourtScheduleCreate,
+    CourtScheduleRead,
+    CourtUpdate,
+    PaginatedCourtRead,
+)
+from .service import (
+    create_court,
+    delete_court_by_id,
+    get_available_slots,
+    get_court_by_id,
+    get_court_schedule,
+    get_courts,
+    set_court_schedule,
+    update_court,
+)
 
 router = APIRouter(prefix="/courts", tags=["Courts"])
 
@@ -92,3 +111,136 @@ async def delete_court_route(
             detail=f"Court with id={court_id} not found",
         )
     return court
+
+
+# Court Schedule Endpoints
+
+
+@router.post(
+    "/{court_id}/schedule",
+    response_model=CourtScheduleRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def set_schedule_route(
+    court_id: int,
+    schedule_in: CourtScheduleCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(admin_guard)],
+):
+    """Set or update the opening and closing hours for a court on a specific day.
+
+    The system will automatically generate 30-minute intervals between these times.
+
+    Request Body:
+        - day_of_week: Day of week (0=Monday, 6=Sunday)
+        - opening_time: Opening time (e.g., "09:00") or null if closed
+        - closing_time: Closing time (e.g., "21:00") or null if closed
+
+    To mark a court as closed on a day, set both opening_time and closing_time to null.
+
+    Requires admin role.
+    """
+    # Validate that both times are provided or both are None
+    if (schedule_in.opening_time is None) != (schedule_in.closing_time is None):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Both opening_time and closing_time must be provided together, or both omitted",
+        )
+
+    if (
+        schedule_in.opening_time
+        and schedule_in.closing_time
+        and schedule_in.opening_time >= schedule_in.closing_time
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Opening time must be before closing time",
+        )
+
+    schedule = await set_court_schedule(
+        db, court_id, schedule_in.day_of_week, schedule_in.opening_time, schedule_in.closing_time
+    )
+
+    if not schedule:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Court with id={court_id} not found",
+        )
+
+    return schedule
+
+
+@router.get("/{court_id}/schedule", response_model=list[CourtScheduleRead])
+async def get_schedule_route(
+    court_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_user)],
+):
+    """Get the weekly schedule (opening/closing hours) for a court.
+
+    Returns the schedule for all 7 days of the week (0=Monday, 6=Sunday).
+    Days with NULL opening_time/closing_time are closed.
+
+    Requires authentication.
+    """
+    # Check if court exists
+    court = await get_court_by_id(db, court_id)
+    if not court:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Court with id={court_id} not found",
+        )
+
+    schedule = await get_court_schedule(db, court_id)
+    return [CourtScheduleRead.model_validate(s) for s in schedule]
+
+
+@router.get("/{court_id}/available-slots", response_model=AvailableSlotsResponse)
+async def get_available_slots_route(
+    court_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    slot_date: Annotated[
+        date,
+        Query(
+            ...,
+            description="Date for which to retrieve available slots (YYYY-MM-DD). Slots available from today to 7 days ahead.",
+        ),
+    ],
+):
+    """Get available 30-minute slots for a court on a specific date.
+
+    If slots haven't been generated yet for this date, they will be automatically
+    created based on the court's weekly schedule.
+
+    Query Parameters:
+        - slot_date: Date for which to retrieve slots (format: YYYY-MM-DD). Must be between today and 7 days from today.
+
+    Returns:
+        List of available 30-minute slots with start and end times
+
+    Requires authentication.
+    """
+    # Check if court exists
+    court = await get_court_by_id(db, court_id)
+    if not court:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Court with id={court_id} not found",
+        )
+
+    # Validate slot date is within allowed range
+    try:
+        available_slots = await get_available_slots(db, court_id, slot_date)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
+
+    return AvailableSlotsResponse(
+        court_id=court_id,
+        slot_date=slot_date,
+        available_slots=[BookingSlotRead.model_validate(slot) for slot in available_slots],
+        total_slots=len(available_slots),
+    )

@@ -1,10 +1,12 @@
 from collections.abc import Sequence
+from datetime import date, time
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .models import Court
+from .models import BookingSlot, Court, CourtSchedule
 from .schemas import CourtCreate, CourtUpdate
+from .utils import get_available_slots as utils_get_available_slots
 
 
 async def get_courts(
@@ -77,3 +79,120 @@ async def delete_court_by_id(db: AsyncSession, court_id: int) -> Court | None:
     await db.commit()
 
     return court
+
+
+# Court Schedule Service Methods
+
+
+async def set_court_schedule(
+    db: AsyncSession,
+    court_id: int,
+    day_of_week: int,
+    opening_time: time | None,
+    closing_time: time | None,
+) -> CourtSchedule | None:
+    """Set or update the schedule for a court on a specific day of the week.
+
+    Args:
+        db: Database session
+        court_id: ID of the court
+        day_of_week: Day of week (0=Monday, 6=Sunday)
+        opening_time: Opening time or None if court is closed on this day
+        closing_time: Closing time or None if court is closed on this day
+
+    Returns:
+        The created or updated schedule record, or None if court doesn't exist
+    """
+    # Check if court exists
+    court = await get_court_by_id(db, court_id)
+    if not court:
+        return None
+
+    # Check if schedule already exists
+    query = select(CourtSchedule).where(
+        (CourtSchedule.court_id == court_id) & (CourtSchedule.day_of_week == day_of_week)
+    )
+    result = await db.execute(query)
+    schedule = result.scalar_one_or_none()
+
+    if schedule:
+        # Update existing schedule
+        schedule.opening_time = opening_time
+        schedule.closing_time = closing_time
+    else:
+        # Create new schedule
+        schedule = CourtSchedule(
+            court_id=court_id,
+            day_of_week=day_of_week,
+            opening_time=opening_time,
+            closing_time=closing_time,
+        )
+        db.add(schedule)
+
+    await db.commit()
+    await db.refresh(schedule)
+    return schedule
+
+
+async def get_court_schedule(db: AsyncSession, court_id: int) -> Sequence[CourtSchedule]:
+    """Get the weekly schedule for a court (all 7 days).
+
+    Args:
+        db: Database session
+        court_id: ID of the court
+
+    Returns:
+        Sequence of CourtSchedule records for the court (0-7 entries)
+    """
+    query = (
+        select(CourtSchedule)
+        .where(CourtSchedule.court_id == court_id)
+        .order_by(CourtSchedule.day_of_week)
+    )
+    result = await db.execute(query)
+    return result.scalars().all()
+
+
+async def get_available_slots(
+    db: AsyncSession, court_id: int, target_date: date
+) -> Sequence[BookingSlot]:
+    """Get available 30-minute slots for a court on a specific date.
+
+    This function:
+    1. Validates that the date is within the allowed range (today to +7 days)
+    2. Checks if slots are already generated for this date
+    3. If not, generates them based on the court's weekly schedule
+    4. Returns all available slots
+
+    Args:
+        db: Database session
+        court_id: ID of the court
+        target_date: Date for which to retrieve slots
+
+    Returns:
+        Sequence of available BookingSlot records
+
+    Raises:
+        ValueError: If target_date is outside the allowed range (today to +7 days)
+    """
+    from .utils import validate_slot_date
+
+    # Validate date is within allowed range
+    is_valid, error_message = validate_slot_date(target_date)
+    if not is_valid:
+        raise ValueError(error_message)
+
+    return await utils_get_available_slots(db, court_id, target_date)
+
+
+async def get_court_with_schedule(db: AsyncSession, court_id: int) -> Court | None:
+    """Get a court with its complete weekly schedule loaded.
+
+    Args:
+        db: Database session
+        court_id: ID of the court
+
+    Returns:
+        Court with schedules, or None if not found
+    """
+    return await get_court_by_id(db, court_id)
