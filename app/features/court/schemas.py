@@ -1,6 +1,6 @@
 from datetime import date, datetime, time
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CourtBase(BaseModel):
@@ -53,7 +53,7 @@ class PaginatedCourtRead(BaseModel):
 class CourtScheduleBase(BaseModel):
     """Base schema for CourtSchedule."""
 
-    day_of_week: int  # 0=Monday, 6=Sunday
+    day_of_week: int = Field(ge=0, le=6, description="Day of week (0=Monday, 6=Sunday)")
     opening_time: time | None = None  # NULL = court closed on this day
     closing_time: time | None = None
 
@@ -65,7 +65,9 @@ class CourtScheduleCreate(CourtScheduleBase):
 class CourtScheduleUpdate(BaseModel):
     """Schema for updating a court schedule entry. All fields are optional."""
 
-    day_of_week: int | None = None
+    day_of_week: int | None = Field(
+        None, ge=0, le=6, description="Day of week (0=Monday, 6=Sunday)"
+    )
     opening_time: time | None = None
     closing_time: time | None = None
 
