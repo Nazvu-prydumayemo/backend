@@ -32,7 +32,7 @@ install:
 # -------------------------
 
 dev:
-	uvicorn app.main:app --reload
+	LOKI_URL="" uvicorn app.main:app --reload
 
 prod:
 	uvicorn app.main:app --host 0.0.0.0 --port 8000
