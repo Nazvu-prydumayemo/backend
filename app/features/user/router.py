@@ -5,65 +5,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import verify_password
-from app.features.auth.dependencies import admin_guard, get_current_active_user, staff_guard
+from app.features.auth.dependencies import get_current_active_user
 
 from .models import User
 from .schemas import ChangePasswordRequest, DeleteAccountRequest, UserProfileUpdate, UserRead
 from .service import (
     change_user_password,
     delete_user_by_id,
-    get_user_by_id,
-    get_users,
     update_user_profile,
 )
-
-users_router = APIRouter(prefix="/users", tags=["users"])
-
-
-@users_router.get("/", response_model=list[UserRead])
-async def list_all_users(
-    db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(staff_guard)],
-):
-    return await get_users(db)
-
-
-@users_router.get("/{user_id}", response_model=UserRead)
-async def get_user(
-    user_id: int,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(admin_guard)],
-):
-    user = await get_user_by_id(db, user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return user
-
-
-@users_router.delete(
-    "/{user_id}",
-    responses={
-        200: {"description": "User deleted successfully"},
-        401: {"description": "Unauthorized - Invalid or missing authentication token"},
-        403: {"description": "Forbidden - Admin access required"},
-    },
-)
-async def delete_user(
-    user_id: int,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(admin_guard)],
-):
-    """Delete a user by ID (admin only).
-
-    Only administrators can delete users.
-
-    Errors:
-    - **403**: When the user is not an administrator
-    - **401**: When authentication token is invalid or missing
-    """
-    await delete_user_by_id(db, user_id)
-    return {"message": "User deleted successfully"}
-
 
 account_router = APIRouter(prefix="/account", tags=["account"])
 
@@ -143,6 +93,7 @@ async def change_password(
 
 @account_router.post(
     "/delete",
+    status_code=status.HTTP_200_OK,
     responses={
         200: {"description": "Account deleted successfully"},
         401: {"description": "Unauthorized - Invalid or missing authentication token"},
@@ -155,18 +106,16 @@ async def delete_account(
     current_user: Annotated[User, Depends(get_current_active_user)],
     delete_request: DeleteAccountRequest,
 ):
-    """Delete the current user's account after password verification.
+    """Permanently delete the current user's account and all personal data (GDPR erasure).
 
-    This endpoint permanently deletes the authenticated user's account.
-    Password verification is required for security.
+    Password verification is required for security. All associated data
+    (orders, booking slots, password resets) is removed immediately.
 
     - **password**: User's current password for verification
 
     Errors:
     - **403**: When the provided password is incorrect
     - **401**: When authentication token is invalid or missing
-
-    Returns a success message and user ID upon successful deletion.
     """
     password_valid = await verify_password(delete_request.password, current_user.password)
     if not password_valid:
