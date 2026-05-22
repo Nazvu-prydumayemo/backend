@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from datetime import UTC
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -77,7 +77,7 @@ async def create_order_with_slots(
         )
 
     # Validate: all slots are within allowed date range (today to +7 days)
-    from datetime import datetime, timedelta
+    from datetime import timedelta
 
     today = datetime.now(UTC).date()
     max_date = today + timedelta(days=7)
@@ -99,6 +99,27 @@ async def create_order_with_slots(
         raise OrderValidationError(
             f"{len(out_of_range_slots)} slot(s) are outside the allowed booking range (today to +7 days)",
             unavailable_slots=out_of_range_slots,
+        )
+
+    # Validate: for today's slots, start_time must be in the future
+    current_time = datetime.now(UTC).time()
+    past_slots = []
+    for slot in slots:
+        if slot.slot_date == today and slot.start_time <= current_time:
+            past_slots.append(
+                {
+                    "id": slot.id,
+                    "slot_date": slot.slot_date.isoformat(),
+                    "start_time": slot.start_time.isoformat(),
+                    "end_time": slot.end_time.isoformat(),
+                    "reason": "Slot time has already passed",
+                }
+            )
+
+    if past_slots:
+        raise OrderValidationError(
+            f"{len(past_slots)} slot(s) have already passed",
+            unavailable_slots=past_slots,
         )
 
     # Validate: all slots are available (strict mode - all or nothing)

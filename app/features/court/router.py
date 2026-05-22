@@ -130,11 +130,13 @@ async def set_schedule_route(
     """Set or update the opening and closing hours for a court on a specific day.
 
     The system will automatically generate 30-minute intervals between these times.
+    All times must be specified in UTC — the client is responsible for converting
+    from local time to UTC before sending.
 
     Request Body:
         - day_of_week: Day of week (0=Monday, 6=Sunday)
-        - opening_time: Opening time (e.g., "09:00") or null if closed
-        - closing_time: Closing time (e.g., "21:00") or null if closed
+        - opening_time: Opening time in UTC (e.g., "07:00") or null if closed
+        - closing_time: Closing time in UTC (e.g., "19:00") or null if closed
 
     To mark a court as closed on a day, set both opening_time and closing_time to null.
 

@@ -7,7 +7,6 @@ from app.core.security import create_access_token
 from app.db.session import AsyncSessionLocal
 from app.features.court.models import Court
 from app.features.user.models import User
-
 from app.main import app
 
 
@@ -42,7 +41,6 @@ async def create_court() -> Court:
             price_per_hour=50.0,
             description="Order test court",
             location="North side",
-            working_hours="Mon-Fri 08:00-22:00",
         )
         db.add(court)
         await db.commit()
