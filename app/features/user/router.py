@@ -8,10 +8,17 @@ from app.core.security import verify_password
 from app.features.auth.dependencies import get_current_active_user
 
 from .models import User
-from .schemas import ChangePasswordRequest, DeleteAccountRequest, UserProfileUpdate, UserRead
+from .schemas import (
+    ChangePasswordRequest,
+    DeleteAccountRequest,
+    UserDataExport,
+    UserProfileUpdate,
+    UserRead,
+)
 from .service import (
     change_user_password,
     delete_user_by_id,
+    export_user_data,
     update_user_profile,
 )
 
@@ -24,6 +31,25 @@ async def get_account_info(
 ):
     """Get the current authenticated user's account information"""
     return current_user
+
+
+@account_router.get(
+    "/export-data",
+    response_model=UserDataExport,
+    responses={
+        200: {"description": "Personal data export (GDPR Article 15)"},
+        401: {"description": "Unauthorized - Invalid or missing authentication token"},
+    },
+)
+async def export_account_data(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_active_user)],
+):
+    """Export all personal data stored about the current user (GDPR right of access).
+
+    Returns profile information, orders, and booking slot history in a structured format.
+    """
+    return await export_user_data(db, current_user.id)
 
 
 @account_router.patch(

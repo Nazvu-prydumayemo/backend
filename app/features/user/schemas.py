@@ -1,6 +1,8 @@
 import enum
+from datetime import date, datetime, time
+from decimal import Decimal
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 from app.core.security import StrongPassword
 
@@ -52,3 +54,28 @@ class UserProfileUpdate(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: StrongPassword
+
+
+class ExportedSlot(BaseModel):
+    court_id: int
+    slot_date: date
+    start_time: time
+    end_time: time
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ExportedOrder(BaseModel):
+    order_id: int
+    court_id: int
+    booking_date: date | None = None
+    total_price: Decimal | None = None
+    created_at: datetime
+    slots: list[ExportedSlot] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserDataExport(BaseModel):
+    profile: UserRead
+    orders: list[ExportedOrder]

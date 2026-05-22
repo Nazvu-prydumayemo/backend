@@ -95,6 +95,41 @@ async def delete_user_by_id(db: AsyncSession, user_id: int) -> User | None:
     return user
 
 
+async def export_user_data(db: AsyncSession, user_id: int) -> dict:
+    """Export all personal data for a user (GDPR Article 15 - right of access)."""
+    user = await get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    orders_q = (
+        select(Order).where(Order.user_id == user_id).options(selectinload(Order.booking_slots))
+    )
+    orders = (await db.execute(orders_q)).scalars().all()
+
+    return {
+        "profile": user,
+        "orders": [
+            {
+                "order_id": o.id,
+                "court_id": o.court_id,
+                "booking_date": o.booking_date,
+                "total_price": o.total_price,
+                "created_at": o.created_at,
+                "slots": [
+                    {
+                        "court_id": s.court_id,
+                        "slot_date": s.slot_date,
+                        "start_time": s.start_time,
+                        "end_time": s.end_time,
+                    }
+                    for s in o.booking_slots
+                ],
+            }
+            for o in orders
+        ],
+    }
+
+
 async def update_user_profile(
     db: AsyncSession, user: User, firstname: str | None = None, lastname: str | None = None
 ) -> User:
