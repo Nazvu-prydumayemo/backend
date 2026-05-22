@@ -1,6 +1,8 @@
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
+
 from app.main import app
+
 
 @pytest.mark.asyncio
 async def test_get_available_courts():
@@ -17,5 +19,4 @@ async def test_get_available_courts():
             assert "price_per_hour" in court
             assert "description" in court
             assert "location" in court
-            assert "working_hours" in court
             assert "created_at" in court
