@@ -54,8 +54,12 @@ class CourtScheduleBase(BaseModel):
     """Base schema for CourtSchedule."""
 
     day_of_week: int = Field(ge=0, le=6, description="Day of week (0=Monday, 6=Sunday)")
-    opening_time: time | None = None  # NULL = court closed on this day
-    closing_time: time | None = None
+    opening_time: time | None = Field(
+        None, description="Opening time in UTC (e.g., 07:00). Null = court closed this day"
+    )
+    closing_time: time | None = Field(
+        None, description="Closing time in UTC (e.g., 19:00). Null = court closed this day"
+    )
 
 
 class CourtScheduleCreate(CourtScheduleBase):

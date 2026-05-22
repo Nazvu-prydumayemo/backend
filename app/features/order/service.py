@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from datetime import UTC
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -77,7 +77,7 @@ async def create_order_with_slots(
         )
 
     # Validate: all slots are within allowed date range (today to +7 days)
-    from datetime import datetime, timedelta
+    from datetime import timedelta
 
     today = datetime.now(UTC).date()
     max_date = today + timedelta(days=7)
