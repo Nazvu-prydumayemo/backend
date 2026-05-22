@@ -164,6 +164,11 @@ async def get_available_slots(
         .order_by(BookingSlot.start_time)
     )
 
+    # For today, filter out slots that have already passed
+    if target_date == datetime.now(UTC).date():
+        current_time = datetime.now(UTC).time()
+        query = query.where(BookingSlot.start_time > current_time)
+
     result = await db.execute(query)
     return result.scalars().all()
 
@@ -184,7 +189,7 @@ async def validate_booking_slots(
         Tuple of (is_valid, error_message)
     """
     # Check if booking is in the future
-    now = datetime.now().date()
+    now = datetime.now(UTC).date()
     if booking_date < now:
         return False, "Cannot book in the past"
 
