@@ -1,11 +1,14 @@
 from collections.abc import Sequence
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.security import hash_password, verify_password
+from app.features.auth.models import PasswordReset
+from app.features.court.models import BookingSlot
+from app.features.order.models import Order
 
 from .models import User
 from .schemas import UserCreate
@@ -58,15 +61,73 @@ async def create_user(db: AsyncSession, data: UserCreate) -> User | None:
 
 
 async def delete_user_by_id(db: AsyncSession, user_id: int) -> User | None:
+    """Delete a user and all associated personal data (GDPR erasure).
+
+    Uses bulk operations for efficiency: frees booking slots, deletes
+    orders and password resets, then removes the user record.
+    """
     user = await get_user_by_id(db, user_id)
 
     if not user:
         return None
 
+    # Get all order IDs for bulk operations
+    order_ids = (await db.execute(select(Order.id).where(Order.user_id == user_id))).scalars().all()
+
+    # Free all booking slots linked to this user's orders
+    if order_ids:
+        await db.execute(
+            update(BookingSlot)
+            .where(BookingSlot.order_id.in_(order_ids))
+            .values(is_available=True, order_id=None)
+        )
+
+    # Delete all orders for this user
+    await db.execute(delete(Order).where(Order.user_id == user_id))
+
+    # Delete password reset records
+    await db.execute(delete(PasswordReset).where(PasswordReset.user_id == user_id))
+
+    # Delete the user
     await db.delete(user)
     await db.commit()
 
     return user
+
+
+async def export_user_data(db: AsyncSession, user_id: int) -> dict:
+    """Export all personal data for a user (GDPR Article 15 - right of access)."""
+    user = await get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    orders_q = (
+        select(Order).where(Order.user_id == user_id).options(selectinload(Order.booking_slots))
+    )
+    orders = (await db.execute(orders_q)).scalars().all()
+
+    return {
+        "profile": user,
+        "orders": [
+            {
+                "order_id": o.id,
+                "court_id": o.court_id,
+                "booking_date": o.booking_date,
+                "total_price": o.total_price,
+                "created_at": o.created_at,
+                "slots": [
+                    {
+                        "court_id": s.court_id,
+                        "slot_date": s.slot_date,
+                        "start_time": s.start_time,
+                        "end_time": s.end_time,
+                    }
+                    for s in o.booking_slots
+                ],
+            }
+            for o in orders
+        ],
+    }
 
 
 async def update_user_profile(
