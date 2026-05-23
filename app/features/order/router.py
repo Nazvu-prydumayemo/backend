@@ -1,3 +1,5 @@
+"""Order endpoints: create orders, list orders, retrieve order details."""
+
 from datetime import UTC, datetime
 from typing import Annotated
 

@@ -1,3 +1,5 @@
+"""Authentication dependencies: user retrieval, role-based access guards."""
+
 from collections.abc import Callable
 from typing import Annotated
 

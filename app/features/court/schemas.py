@@ -1,3 +1,5 @@
+"""Pydantic models for court, schedule, and booking slot schemas."""
+
 from datetime import date, datetime, time
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -61,7 +63,7 @@ class CourtScheduleBase(BaseModel):
 
 
 class CourtScheduleCreate(CourtScheduleBase):
-    """Schema for creating a court schedule entry."""
+    """Schema for creating or updating a court schedule entry for a specific day."""
 
 
 class CourtScheduleUpdate(BaseModel):

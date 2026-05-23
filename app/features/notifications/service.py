@@ -1,3 +1,5 @@
+"""Notification helpers for sending booking emails."""
+
 import logging
 from datetime import date
 from decimal import Decimal

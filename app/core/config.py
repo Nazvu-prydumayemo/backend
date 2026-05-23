@@ -1,3 +1,5 @@
+"""Application settings and configuration loaded from environment variables."""
+
 from functools import lru_cache
 
 from pydantic import SecretStr
@@ -5,6 +7,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Application settings loaded from environment variables via Pydantic."""
+
     app_name: str
     environment: str
 
@@ -36,6 +40,7 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+    """Get the cached application settings singleton."""
     return Settings.model_validate({})
 
 

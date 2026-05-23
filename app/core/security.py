@@ -1,3 +1,5 @@
+"""Password hashing, JWT creation/validation, and password strength helpers."""
+
 import asyncio
 import re
 import secrets
@@ -62,7 +64,17 @@ def decode_token(token: str) -> dict | None:
 
 
 def validate_password_regex(v: str) -> str:
+    """Validate that a password meets complexity requirements.
 
+    Args:
+        v: The password string to validate.
+
+    Returns:
+        str: The validated password if it passes all checks.
+
+    Raises:
+        ValueError: If the password does not meet complexity requirements.
+    """
     pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$"
 
     if not re.match(pattern, v):

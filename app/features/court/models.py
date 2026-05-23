@@ -1,3 +1,5 @@
+"""Court, CourtSchedule, and BookingSlot SQLAlchemy ORM models."""
+
 from datetime import date, datetime, time
 from typing import TYPE_CHECKING
 
@@ -24,6 +26,8 @@ if TYPE_CHECKING:
 
 
 class Court(Base):
+    """ORM model representing a tennis court with pricing and location details."""
+
     __tablename__ = "courts"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True, init=False)

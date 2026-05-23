@@ -1,3 +1,5 @@
+"""HTTP logging middleware for FastAPI."""
+
 import logging
 import time
 from collections.abc import Callable

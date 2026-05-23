@@ -1,3 +1,5 @@
+"""PasswordReset ORM model for storing password reset codes."""
+
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, String

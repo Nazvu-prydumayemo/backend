@@ -1,3 +1,5 @@
+"""Order SQLAlchemy ORM model."""
+
 from datetime import date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
@@ -13,6 +15,8 @@ if TYPE_CHECKING:
 
 
 class Order(Base):
+    """ORM model representing a court booking order placed by a user."""
+
     __tablename__ = "orders"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True, init=False)

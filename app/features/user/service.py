@@ -1,3 +1,5 @@
+"""User CRUD operations and account management business logic."""
+
 from collections.abc import Sequence
 
 from fastapi import HTTPException, status
@@ -20,17 +22,20 @@ def normalize_email(email: str) -> str:
 
 
 async def get_users(db: AsyncSession) -> Sequence[User]:
+    """Retrieve all users with their roles loaded."""
     result = await db.execute(select(User).options(selectinload(User.role)))
     return result.scalars().all()
 
 
 async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
+    """Retrieve a user by their ID. Returns None if not found."""
     query = select(User).where(User.id == user_id).options(selectinload(User.role))
     result = await db.execute(query)
     return result.scalar_one_or_none()
 
 
 async def get_user_by_email(db: AsyncSession, user_email: str) -> User | None:
+    """Retrieve a user by their email (case-insensitive). Returns None if not found."""
     normalized_email = normalize_email(user_email)
     query = select(User).where(User.email == normalized_email).options(selectinload(User.role))
     result = await db.execute(query)
@@ -38,6 +43,18 @@ async def get_user_by_email(db: AsyncSession, user_email: str) -> User | None:
 
 
 async def create_user(db: AsyncSession, data: UserCreate) -> User | None:
+    """Create a new user with hashed password.
+
+    Args:
+        db: Database session.
+        data: User creation data including email, password, and role.
+
+    Returns:
+        The newly created User with relationships loaded, or None.
+
+    Raises:
+        HTTPException: If the email is already registered.
+    """
     normalized_email = normalize_email(data.email)
     existing_user = await get_user_by_email(db, normalized_email)
     if existing_user:

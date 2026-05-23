@@ -1,3 +1,5 @@
+"""Court and schedule business logic."""
+
 from collections.abc import Sequence
 from datetime import date, time
 

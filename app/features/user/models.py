@@ -1,3 +1,5 @@
+"""User and UserRole SQLAlchemy ORM models."""
+
 from sqlalchemy import Boolean, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -5,6 +7,8 @@ from app.db.base import Base
 
 
 class UserRole(Base):
+    """ORM model representing a user role (e.g. ADMIN, MODERATOR, USER)."""
+
     __tablename__ = "user_roles"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -14,6 +18,8 @@ class UserRole(Base):
 
 
 class User(Base):
+    """ORM model representing a registered user account."""
+
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True, init=False)
