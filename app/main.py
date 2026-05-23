@@ -7,6 +7,7 @@ from app.api import api_router
 from app.core.config import settings
 from app.core.logging_config import LokiHandler, setup_logging
 from app.core.middleware import LoggingMiddleware
+from app.features.notifications.scheduler import reschedule_pending_reminders, scheduler
 
 # Initialize logging (console handler is active immediately; Loki handler is started in lifespan)
 setup_logging(
@@ -25,7 +26,14 @@ async def lifespan(app: FastAPI):
     for handler in loki_handlers:
         await handler._ensure_initialized()
 
+    # Start APScheduler and recover pending reminders
+    scheduler.start()
+    await reschedule_pending_reminders()
+
     yield
+
+    # Shutdown scheduler
+    scheduler.shutdown(wait=False)
 
     # Clean up LokiHandlers on shutdown
     for handler in loki_handlers:

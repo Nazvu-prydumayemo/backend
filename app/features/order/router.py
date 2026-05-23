@@ -1,17 +1,21 @@
+from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.features.auth.dependencies import get_current_active_user
 from app.features.court.service import get_court_by_id
+from app.features.notifications.scheduler import schedule_reminder
+from app.features.notifications.service import send_booking_confirmation
 from app.features.user.models import User
 
 from .schemas import OrderCreate, OrderDetailResponse, OrderRead
 from .service import (
     OrderValidationError,
     create_order_with_slots,
+    format_slot_ranges,
     get_order_by_id,
     get_orders_by_user_id,
 )
@@ -37,6 +41,7 @@ AUTH_RESPONSES = {
 )
 async def create_order_route(
     order_in: OrderCreate,
+    background_tasks: BackgroundTasks,
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_active_user)],
 ):
@@ -53,7 +58,7 @@ async def create_order_route(
         )
 
     try:
-        return await create_order_with_slots(
+        order = await create_order_with_slots(
             db,
             current_user.id,
             order_in.court_id,
@@ -67,6 +72,28 @@ async def create_order_route(
                 "unavailable_slots": e.unavailable_slots,
             },
         ) from e
+
+    # Send booking confirmation email in the background
+    if order.booking_slots and order.booking_date is not None and order.total_price is not None:
+        first_slot = order.booking_slots[0]
+        time_slots = format_slot_ranges(order.booking_slots)
+        background_tasks.add_task(
+            send_booking_confirmation,
+            current_user.email,
+            current_user.firstname,
+            court.name,
+            order.booking_date,
+            time_slots,
+            order.total_price,
+        )
+
+        # Schedule reminder 1 hour before first slot
+        first_slot_datetime = datetime.combine(
+            first_slot.slot_date, first_slot.start_time, tzinfo=UTC
+        )
+        schedule_reminder(order.id, first_slot_datetime)
+
+    return order
 
 
 @router.get(

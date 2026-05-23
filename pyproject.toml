@@ -21,6 +21,7 @@ dependencies = [
     "PyJWT>=2.8.0",
     "types-passlib>=1.7.3",          # Type stubs for passlib
     "fastapi-mail>=1.4.0",           # Email sending service
+    "apscheduler>=3.10.0",           # Background job scheduling
     "aiohttp>=3.8.0",                # Async HTTP client for Loki
 ]
 
