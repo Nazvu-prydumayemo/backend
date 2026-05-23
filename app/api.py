@@ -1,3 +1,5 @@
+"""API router aggregation. Combines all feature routers under a single APIRouter."""
+
 from fastapi import APIRouter
 
 from app.features.auth.router import router as auth_router

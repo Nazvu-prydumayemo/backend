@@ -1,3 +1,5 @@
+"""Pydantic models for order request/response schemas."""
+
 from datetime import date, datetime, time
 from decimal import Decimal
 

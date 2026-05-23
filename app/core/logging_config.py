@@ -1,3 +1,5 @@
+"""Logging configuration with structured JSON output and Loki shipping."""
+
 import asyncio
 import json
 import logging
@@ -44,6 +46,7 @@ class StructuredFormatter(logging.Formatter):
     """
 
     def format(self, record: logging.LogRecord) -> str:
+        """Format a log record as a JSON string with structured metadata."""
         log_data = {
             "timestamp": self.formatTime(record),
             "level": record.levelname,
@@ -85,6 +88,16 @@ class LokiHandler(logging.Handler):
         batch_size: int = 10,
         flush_interval: float = 5.0,
     ):
+        """Initialize the Loki logging handler.
+
+        Args:
+            loki_url: URL of the Loki instance.
+            job_name: Job label for logs in Loki.
+            loki_user: Optional username for Loki authentication.
+            loki_password: Optional password for Loki authentication.
+            batch_size: Maximum number of log entries per batch.
+            flush_interval: Maximum seconds to wait before flushing a batch.
+        """
         super().__init__()
         self.loki_url = loki_url.rstrip("/")
         self.job_name = job_name

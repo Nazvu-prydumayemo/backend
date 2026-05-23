@@ -1,3 +1,5 @@
+"""Court CRUD endpoints, schedule management, and available slots."""
+
 from datetime import date
 from typing import Annotated
 

@@ -1,3 +1,5 @@
+"""APScheduler setup for booking reminder jobs."""
+
 import logging
 from datetime import UTC, datetime, timedelta
 

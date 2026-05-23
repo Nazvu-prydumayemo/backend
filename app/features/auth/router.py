@@ -1,3 +1,5 @@
+"""Authentication endpoints: register, login, token refresh, password reset."""
+
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status

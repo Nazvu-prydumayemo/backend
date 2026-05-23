@@ -1,3 +1,5 @@
+"""Application entry point. Configures FastAPI app, lifespan events, and logging."""
+
 import logging
 from contextlib import asynccontextmanager
 
@@ -20,6 +22,12 @@ setup_logging(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Async context manager for application lifespan events.
+
+    Initializes Loki logging, starts the APScheduler, and recovers pending
+    reminder jobs on startup. Shuts down the scheduler and Loki handlers on
+    shutdown.
+    """
     # Initialize async components of any LokiHandlers now that the event loop is running
     root_logger = logging.getLogger()
     loki_handlers = [h for h in root_logger.handlers if isinstance(h, LokiHandler)]

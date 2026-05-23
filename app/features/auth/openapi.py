@@ -1,5 +1,8 @@
+"""OpenAPI extra schema definitions for the login endpoint."""
+
 from typing import Any
 
+# OpenAPI request body schema for login supporting JSON and form-urlencoded.
 LOGIN_REQUEST_BODY: dict[str, Any] = {
     "required": True,
     "content": {
@@ -79,6 +82,7 @@ LOGIN_REQUEST_BODY: dict[str, Any] = {
 }
 
 
+# OpenAPI extra configuration embedding the login request body.
 LOGIN_OPENAPI_EXTRA: dict[str, Any] = {
     "requestBody": LOGIN_REQUEST_BODY,
 }

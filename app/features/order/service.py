@@ -1,3 +1,5 @@
+"""Order business logic: creation with validation, retrieval, slot formatting."""
+
 from collections.abc import Sequence
 from datetime import UTC, datetime, time
 from decimal import Decimal
@@ -13,9 +15,15 @@ from .schemas import OrderCreate
 
 
 class OrderValidationError(Exception):
-    """Raised when order validation fails"""
+    """Raised when order validation fails."""
 
     def __init__(self, message: str, unavailable_slots: list[dict] | None = None):
+        """Initialize the validation error with a message and optional unavailable slot details.
+
+        Args:
+            message: Description of the validation failure.
+            unavailable_slots: Optional list of slot details that caused the failure.
+        """
         self.message = message
         self.unavailable_slots = unavailable_slots or []
         super().__init__(self.message)

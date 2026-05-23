@@ -1,3 +1,5 @@
+"""Health-check and status endpoints."""
+
 from datetime import UTC, datetime
 
 from fastapi import APIRouter
@@ -14,6 +16,7 @@ router = APIRouter(prefix="/status", tags=["Status"])
     description="Returns detailed system status and current server time.",
 )
 async def status() -> StatusResponse:
+    """Return detailed system status with current server timestamp."""
     return StatusResponse(
         status="ok",
         timestamp=datetime.now(UTC),
@@ -27,4 +30,5 @@ async def status() -> StatusResponse:
     description="Returns a 'pong' string to verify the server is alive and reachable.",
 )
 async def ping() -> str:
+    """Return a simple 'pong' string to verify the server is alive."""
     return "pong"

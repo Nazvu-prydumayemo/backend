@@ -1,3 +1,5 @@
+"""Authentication business logic: login, registration, token refresh, password reset."""
+
 from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException, status
