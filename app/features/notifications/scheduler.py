@@ -10,6 +10,7 @@ from app.db.session import AsyncSessionLocal
 from app.features.court.models import Court
 from app.features.email.service import email_service
 from app.features.order.models import Order
+from app.features.order.service import format_slot_ranges
 from app.features.user.models import User
 
 logger = logging.getLogger(__name__)
@@ -77,21 +78,21 @@ async def send_booking_reminder(order_id: int) -> None:
             await db.commit()
             return
 
-        first_slot = order.booking_slots[0] if order.booking_slots else None
-        if not first_slot:
+        if not order.booking_slots:
             logger.warning("Order %d: no booking slots, marking as notified", order_id)
             order.reminder_sent = True
             await db.commit()
             return
 
         location = court.location or "Check your booking details"
+        time_slots = format_slot_ranges(order.booking_slots)
 
         success = await email_service.send_booking_reminder(
             NameEmail(email=user.email, name=user.firstname),
             user.firstname,
             court.name,
-            first_slot.slot_date.isoformat(),
-            first_slot.start_time.strftime("%H:%M"),
+            order.booking_date.isoformat() if order.booking_date else "",
+            time_slots,
             location,
         )
 

@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -184,6 +184,24 @@ async def create_order_with_slots(
     await db.refresh(new_order, ["booking_slots"])
 
     return new_order
+
+
+def format_slot_ranges(booking_slots: list[BookingSlot]) -> str:
+    """Merge consecutive booking slots into compact ranges.
+    E.g. [(11:30-12:00), (12:00-12:30)] → "11:30 - 12:30"
+         [(11:30-12:00), (12:00-12:30), (18:00-18:30), (18:30-19:00)]
+         → "11:30 - 12:30, 18:00 - 19:00"
+    """
+    sorted_slots = sorted(booking_slots, key=lambda s: (s.slot_date, s.start_time))
+    groups: list[tuple[time, time]] = []
+    for slot in sorted_slots:
+        if groups and groups[-1][1] == slot.start_time:
+            groups[-1] = (groups[-1][0], slot.end_time)
+        else:
+            groups.append((slot.start_time, slot.end_time))
+    return ", ".join(
+        f"{start.strftime('%H:%M')} - {end.strftime('%H:%M')}" for start, end in groups
+    )
 
 
 async def get_orders_by_user_id(db: AsyncSession, user_id: int) -> Sequence[Order]:

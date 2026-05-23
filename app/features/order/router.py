@@ -15,6 +15,7 @@ from .schemas import OrderCreate, OrderDetailResponse, OrderRead
 from .service import (
     OrderValidationError,
     create_order_with_slots,
+    format_slot_ranges,
     get_order_by_id,
     get_orders_by_user_id,
 )
@@ -75,15 +76,14 @@ async def create_order_route(
     # Send booking confirmation email in the background
     if order.booking_slots and order.booking_date is not None and order.total_price is not None:
         first_slot = order.booking_slots[0]
-        last_slot = order.booking_slots[-1]
+        time_slots = format_slot_ranges(order.booking_slots)
         background_tasks.add_task(
             send_booking_confirmation,
             current_user.email,
             current_user.firstname,
             court.name,
             order.booking_date,
-            first_slot.start_time,
-            last_slot.end_time,
+            time_slots,
             order.total_price,
         )
 

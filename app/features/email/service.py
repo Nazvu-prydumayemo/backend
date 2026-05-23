@@ -150,8 +150,7 @@ class EmailService:
         user_name: str,
         court_name: str,
         booking_date: str,
-        start_time: str,
-        end_time: str,
+        time_slots: str,
         total_price: str,
     ) -> bool:
         """
@@ -162,8 +161,7 @@ class EmailService:
             user_name: Name of the user.
             court_name: Name of the court.
             booking_date: Date of the booking (ISO format string).
-            start_time: Start time string (HH:MM).
-            end_time: End time string (HH:MM).
+            time_slots: Formatted time slots string (e.g. "13:30 - 14:30, 22:00 - 23:00").
             total_price: Total price as string.
 
         Returns:
@@ -176,8 +174,7 @@ class EmailService:
                 user_name=escape(user_name),
                 court_name=escape(court_name),
                 booking_date=escape(booking_date),
-                start_time=escape(start_time),
-                end_time=escape(end_time),
+                time_slots=escape(time_slots),
                 total_price=escape(total_price),
             )
 
@@ -197,7 +194,7 @@ class EmailService:
         user_name: str,
         court_name: str,
         booking_date: str,
-        start_time: str,
+        time_slots: str,
         location: str,
     ) -> bool:
         """
@@ -208,7 +205,7 @@ class EmailService:
             user_name: Name of the user.
             court_name: Name of the court.
             booking_date: Date of the booking (ISO format string).
-            start_time: Start time string (HH:MM).
+            time_slots: Formatted time slots string (e.g. "13:30 - 14:30, 22:00 - 23:00").
             location: Location of the court.
 
         Returns:
@@ -221,7 +218,7 @@ class EmailService:
                 user_name=escape(user_name),
                 court_name=escape(court_name),
                 booking_date=escape(booking_date),
-                start_time=escape(start_time),
+                time_slots=escape(time_slots),
                 location=escape(location),
             )
 
