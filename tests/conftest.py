@@ -4,12 +4,11 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
+import app.features.court.models
+import app.features.order.models
+import app.features.user.models  # noqa: F401
 from app.core.config import settings
 from app.db.base import Base
-import app.features.court.models  # noqa: F401
-import app.features.order.models  # noqa: F401
-import app.features.user.models  # noqa: F401
-
 
 if hasattr(asyncio, "WindowsSelectorEventLoopPolicy"):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())

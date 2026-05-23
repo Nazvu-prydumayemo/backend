@@ -144,5 +144,96 @@ class EmailService:
         except errors.ConnectionErrors:
             return False
 
+    async def send_booking_confirmation(
+        self,
+        recipient_email: NameEmail,
+        user_name: str,
+        court_name: str,
+        booking_date: str,
+        start_time: str,
+        end_time: str,
+        total_price: str,
+    ) -> bool:
+        """
+        Send a booking confirmation email after an order is created.
+
+        Args:
+            recipient_email: Recipient email address object.
+            user_name: Name of the user.
+            court_name: Name of the court.
+            booking_date: Date of the booking (ISO format string).
+            start_time: Start time string (HH:MM).
+            end_time: End time string (HH:MM).
+            total_price: Total price as string.
+
+        Returns:
+            bool: True if email sent successfully, False otherwise.
+        """
+        try:
+            subject = f"Booking Confirmed - {court_name}"
+            template = self._load_template("booking_confirmation.html")
+            body = template.format(
+                user_name=escape(user_name),
+                court_name=escape(court_name),
+                booking_date=escape(booking_date),
+                start_time=escape(start_time),
+                end_time=escape(end_time),
+                total_price=escape(total_price),
+            )
+
+            return await self.send_email(
+                subject=subject,
+                recipients=[recipient_email],
+                body=body,
+            )
+        except FileNotFoundError:
+            return False
+        except errors.ConnectionErrors:
+            return False
+
+    async def send_booking_reminder(
+        self,
+        recipient_email: NameEmail,
+        user_name: str,
+        court_name: str,
+        booking_date: str,
+        start_time: str,
+        location: str,
+    ) -> bool:
+        """
+        Send a reminder email 1 hour before the booking starts.
+
+        Args:
+            recipient_email: Recipient email address object.
+            user_name: Name of the user.
+            court_name: Name of the court.
+            booking_date: Date of the booking (ISO format string).
+            start_time: Start time string (HH:MM).
+            location: Location of the court.
+
+        Returns:
+            bool: True if email sent successfully, False otherwise.
+        """
+        try:
+            subject = f"Reminder: {court_name} Booking in 1 Hour"
+            template = self._load_template("booking_reminder.html")
+            body = template.format(
+                user_name=escape(user_name),
+                court_name=escape(court_name),
+                booking_date=escape(booking_date),
+                start_time=escape(start_time),
+                location=escape(location),
+            )
+
+            return await self.send_email(
+                subject=subject,
+                recipients=[recipient_email],
+                body=body,
+            )
+        except FileNotFoundError:
+            return False
+        except errors.ConnectionErrors:
+            return False
+
 
 email_service = EmailService()

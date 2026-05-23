@@ -174,15 +174,16 @@ async def create_order_with_slots(
         slot.is_available = False
         slot.order_id = new_order.id
 
+    # Mark slots as belonging to the order in the relationship
+    new_order.booking_slots = list(slots)
+
     # Commit the transaction atomically
     await db.commit()
 
-    # Fetch the created order with its relationship loaded
-    order_query = (
-        select(Order).where(Order.id == new_order.id).options(selectinload(Order.booking_slots))
-    )
-    order_result = await db.execute(order_query)
-    return order_result.scalar_one()
+    # Refresh to get a clean state with loaded relationships
+    await db.refresh(new_order, ["booking_slots"])
+
+    return new_order
 
 
 async def get_orders_by_user_id(db: AsyncSession, user_id: int) -> Sequence[Order]:
