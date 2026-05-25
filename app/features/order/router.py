@@ -1,7 +1,7 @@
 """Order endpoints: create orders, list orders, retrieve order details."""
 
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,7 +24,7 @@ from .service import (
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
-AUTH_RESPONSES = {
+AUTH_RESPONSES: dict[int | str, dict[str, Any]] = {
     401: {"description": "Unauthorized - Invalid or missing authentication token"},
     403: {"description": "Forbidden - User account is inactive"},
 }
